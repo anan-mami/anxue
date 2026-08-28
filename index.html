@@ -626,6 +626,55 @@ img { max-width: 100%; height: auto; }
   .kp-card { padding: 8px; }
   .kp-panel { padding: 10px; }
 }
+
+.read-passage {
+  background: #f7fbff; border: 1px solid #d6e6f5; border-radius: 12px;
+  padding: 14px 16px; margin: 4px 0 14px; line-height: 1.9; font-size: 15px; color: #2a3b4d;
+  white-space: pre-wrap;
+}
+.read-sub { margin: 10px 0; }
+.read-sub-stem { font-weight: 600; margin-bottom: 6px; color: #34495e; }
+.read-ans { width: 100%; }
+.recite-box {
+  background: linear-gradient(135deg, #fff7e6, #ffeed4); border: 1px solid #ffd591;
+  border-radius: 14px; padding: 18px 20px; margin: 4px 0 8px;
+  line-height: 2; font-size: 17px; color: #7a4b00; white-space: pre-wrap; font-weight: 600;
+}
+.q-textarea {
+  width: 100%; min-height: 120px; border: 2px solid #d8e2ee; border-radius: 12px;
+  padding: 12px 14px; font-size: 16px; line-height: 1.7; font-family: inherit; resize: vertical;
+  outline: none;
+}
+.q-textarea:focus { border-color: var(--primary); }
+
+/* ----------------------------- 语文扩展题型（手写板 / 真连线 / 录音） ----------------------------- */
+.hw-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 8px 0 4px; }
+.hw-canvas { width: 100%; max-width: 440px; height: 160px; background: #fffdf5; border: 2px dashed #f0c987;
+  border-radius: 12px; touch-action: none; cursor: crosshair; }
+.hw-wrap .btn { align-self: flex-end; }
+
+.match-area { position: relative; margin: 10px 0 6px; }
+.match-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+.match-lines .ml { stroke: #4f8cff; stroke-width: 3; stroke-linecap: round; }
+.match-cols { display: flex; gap: 20px; position: relative; z-index: 1; }
+.match-col { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.match-item { border: 2px solid #d8e2ee; background: #fff; border-radius: 12px; padding: 14px 8px;
+  font-size: 16px; cursor: pointer; text-align: center; transition: .15s; }
+.match-item:hover { border-color: #4f8cff; }
+.match-item.pend { border-color: #ff9f43; background: #fff4e6; }
+.match-item.done { border-color: #2ecc71; background: #eafaf1; }
+.match-item.correct { border-color: #2ecc71; background: #eafaf1; }
+.match-item.wrong { border-color: #ff6b6b; background: #fff0f0; }
+.match-lines .ml.correct { stroke: #2ecc71; }
+.match-lines .ml.wrong { stroke: #ff6b6b; }
+.match-tip { color: #8a9bab; font-size: 13px; margin: 10px 2px 0; }
+
+.rec-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0 4px;
+  padding: 12px; background: #f7fbff; border: 1px solid #d6e6f5; border-radius: 12px; }
+.rec-status { font-size: 13px; color: #6b7c8c; }
+.write-extra { margin: 10px 0 4px; padding: 10px 12px; background: #f8f9fa; border-radius: 10px; font-size: 14px; color: #5d6d7e; }
+.write-extra summary { cursor: pointer; user-select: none; }
+.write-extra .q-textarea { margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -1703,7 +1752,7 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
     var total = qz.qs.length;
     var html = '<div class="quiz">' +
       '<div class="quiz-progress">第 ' + (qz.idx + 1) + ' / ' + total + ' 题　✅' + qz.correct + '　❌' + (qz.idx - qz.correct) + '</div>' +
-      '<div class="q-card" id="qCard">' + questionHTML(q) + '</div>' +
+      '<div class="q-card" id="qCard">' + questionHTML(q, qz) + '</div>' +
       '<div class="q-actions" id="qActions"></div>' +
       '<div class="q-feedback" id="qFeedback"></div>' +
       '</div>';
@@ -1711,83 +1760,403 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
     bindQuestion(host, q, qz);
   }
 
-  function questionHTML(q) {
-    var voiceBtn = (q.audio && q.audio.stem) ? '<button type="button" class="speak-btn q-voice-stem">🔊 读题目</button>' : '';
-    var h = '<div class="q-stem">' + esc(q.stem) + voiceBtn + '</div>';
-    if (q.image) h += '<div class="q-img"><img src="' + esc(q.image) + '" alt="" loading="lazy"></div>';
-    if (q.type === "choice" || q.type === "judge") {
-      var opts = q.type === "judge" ? ["对", "错"] : q.options;
-      h += '<div class="q-options btn-grid" id="optGrid">';
-      opts.forEach(function (o, i) {
-        h += '<button class="opt-btn" type="button" data-val="' + esc(o) + '">' + esc(o) + '</button>';
-      });
-      h += '</div>';
-    } else if (q.type === "match") {
-      h += '<div class="q-options match"><p class="match-tip">把能连的算式/结果配对（点击“看答案”核对）：</p>' +
-        (q.options ? q.options.map(function (o) { return '<span class="chip">' + esc(o) + '</span>'; }).join(" ") : "") + '</div>';
-    } else {
-      h += '<input class="q-input" id="ans" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="在这里写出数字答案…" autocomplete="off">';
-    }
-    return h;
+    /* ----------------------------- 题型注册表（可扩展核心） -----------------------------
+   * 每种题型 = { renderBody(q, qz), bind(host,q,qz) }；bind 最终调用 afterAnswer(...)。
+   * 新增题型 = 加一条 registerType，核心调度（renderQuiz / afterAnswer / 结果页）零改动。 */
+  var QUESTION_TYPES = {};
+  function registerType(name, def) { QUESTION_TYPES[name] = def; }
+  function qInput(extra) {
+    return '<input class="q-input" id="ans" ' + (extra || "") + ' autocomplete="off">';
   }
 
-  function bindQuestion(host, q, qz) {
+  // 查找某单元“已学(会写)汉字”表，供 fill_hanzi 手写/选字自动分流
+  function unitLearnedChars(unitId) {
+    try {
+      var subs = window.LEARNING_BOOK.platform.subjects || [];
+      for (var s = 0; s < subs.length; s++) {
+        var vols = subs[s].volumes || {};
+        for (var vn in vols) {
+          var us = (vols[vn] || {}).units || [];
+          for (var u = 0; u < us.length; u++) {
+            if (us[u].unit_id === unitId) return us[u].learned_chars || [];
+          }
+        }
+      }
+    } catch (e) {}
+    return [];
+  }
+
+  // 公共：选项型作答（choice / judge / 选汉字降级）
+  function bindChoice(host, q, qz) {
     var actions = host.querySelector("#qActions");
-    var feedback = host.querySelector("#qFeedback");
+    var grid = host.querySelector("#optGrid");
+    if (grid) Array.prototype.forEach.call(grid.querySelectorAll(".opt-btn"), function (b) {
+      b.addEventListener("click", function () {
+        Array.prototype.forEach.call(grid.querySelectorAll(".opt-btn"), function (x) { x.classList.remove("selected"); });
+        b.classList.add("selected");
+      });
+    });
+    actions.innerHTML = '<button class="btn primary" id="submitBtn">提交</button>';
+    actions.querySelector("#submitBtn").addEventListener("click", function () {
+      var sel = host.querySelector(".opt-btn.selected");
+      if (!sel) { Pet.say("先点选一个答案吧～", 1800); return; }
+      var correct = S.isAnswerCorrect(sel.getAttribute("data-val"), q.answer);
+      afterAnswer(correct, q, qz, host, sel.getAttribute("data-val"));
+    });
+  }
+  // 公共：文本输入型作答（fill / 兜底）
+  function bindText(host, q, qz) {
+    var actions = host.querySelector("#qActions");
+    actions.innerHTML = '<button class="btn primary" id="submitBtn">提交</button>';
+    actions.querySelector("#submitBtn").addEventListener("click", function () {
+      var inp = host.querySelector("#ans");
+      var userAns = inp ? inp.value : "";
+      if (!userAns.trim()) { Pet.say("先把答案写上去哦～", 1800); return; }
+      var correct = S.isAnswerCorrect(userAns, q.answer);
+      afterAnswer(correct, q, qz, host, userAns);
+    });
+  }
 
-    var stemBtn = host.querySelector(".q-voice-stem");
-    if (stemBtn) {
-      stemBtn.addEventListener("click", function () { speak(stemBtn, q.stem, q.audio ? q.audio.stem : null); });
+  // 公共：手写板（Canvas）—— 触屏/鼠标写汉字；离线无法OCR，写完提示家长复核
+  function mountHandwrite(host, q, qz) {
+    var wrap = host.querySelector("#hwWrap");
+    if (!wrap) return;
+    var canvas = wrap.querySelector("#hwCanvas");
+    var ctx = canvas.getContext("2d");
+    var drawing = false, last = null, hasInk = false;
+    function pos(e) {
+      var r = canvas.getBoundingClientRect();
+      var p = (e.touches && e.touches[0]) ? e.touches[0] : e;
+      return { x: (p.clientX - r.left) * (canvas.width / r.width), y: (p.clientY - r.top) * (canvas.height / r.height) };
     }
+    function start(e) { e.preventDefault(); drawing = true; last = pos(e); }
+    function move(e) {
+      if (!drawing) return; e.preventDefault();
+      var p = pos(e); ctx.strokeStyle = "#1f2d3d"; ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      last = p; hasInk = true;
+    }
+    function end() { drawing = false; }
+    canvas.addEventListener("pointerdown", start);
+    canvas.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    var clearBtn = wrap.querySelector("#hwClear");
+    if (clearBtn) clearBtn.addEventListener("click", function () { ctx.clearRect(0, 0, canvas.width, canvas.height); hasInk = false; });
+    var actions = host.querySelector("#qActions");
+    actions.innerHTML = '<button class="btn primary" id="submitBtn">提交</button>';
+    actions.querySelector("#submitBtn").addEventListener("click", function () {
+      if (!hasInk) { Pet.say("先在框里写一写哦～", 1800); return; }
+      var fb = host.querySelector("#qFeedback");
+      fb.innerHTML = '<div class="fb ok">✍️ 写得真认真！请家长看看你写对了吗～<br><span class="an">' +
+        esc(q.analysis || ("正确答案：" + q.answer)) + '</span></div>';
+      afterAnswer(true, q, qz, host, "手写-家长复核");
+    });
+  }
 
-    if (q.type === "choice" || q.type === "judge") {
-      var grid = host.querySelector("#optGrid");
-      if (grid) {
+  // 公共：录音（WebRTC MediaRecorder）—— 离线录音回放；不支持则降级隐藏按钮
+  function mountRecorder(host, q, onRecorded) {
+    var box = host.querySelector("#recBox");
+    if (!box) return false;
+    var recBtn = box.querySelector("#recBtn");
+    var playBtn = box.querySelector("#playBtn");
+    var status = box.querySelector("#recStatus");
+    var supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+    if (!supported) { recBtn.style.display = "none"; status.textContent = "本设备不支持录音，直接点下面的按钮自评吧～"; return false; }
+    var stream = null, mr = null, chunks = [], url = null;
+    recBtn.addEventListener("click", function () {
+      if (!stream) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+          stream = s; mr = new MediaRecorder(s);
+          mr.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
+          mr.onstop = function () {
+            var blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+            if (url) URL.revokeObjectURL(url);
+            url = URL.createObjectURL(blob);
+            playBtn.style.display = "";
+            playBtn.onclick = function () { new Audio(url).play(); };
+            status.textContent = "录好了，点 ▶️ 回放听听～";
+            if (onRecorded) onRecorded();
+          };
+          mr.start(); chunks = []; recBtn.textContent = "⏹ 停止"; status.textContent = "正在录音…";
+        }).catch(function () { status.textContent = "没拿到麦克风权限，点下面自评吧～"; recBtn.style.display = "none"; });
+        return;
+      }
+      if (mr && mr.state === "recording") { mr.stop(); recBtn.textContent = "🎤 录音"; stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    });
+    return true;
+  }
+
+  // choice / judge
+  registerType("choice", {
+    renderBody: function (q) {
+      var opts = q.options || [];
+      return '<div class="q-options btn-grid" id="optGrid">' +
+        opts.map(function (o) { return '<button class="opt-btn" type="button" data-val="' + esc(o) + '">' + esc(o) + '</button>'; }).join("") +
+        '</div>';
+    },
+    bind: function (host, q, qz) { bindChoice(host, q, qz); }
+  });
+  registerType("judge", {
+    renderBody: function (q) {
+      return '<div class="q-options btn-grid" id="optGrid">' +
+        ["对", "错"].map(function (o) { return '<button class="opt-btn" type="button" data-val="' + esc(o) + '">' + esc(o) + '</button>'; }).join("") +
+        '</div>';
+    },
+    bind: function (host, q, qz) { bindChoice(host, q, qz); }
+  });
+
+  // match：真连线（左右两列点选配对，提交校验）
+  registerType("match", {
+    renderBody: function (q) {
+      var lefts = [], rights = [];
+      var pairs = q.pairs || [];
+      if (pairs.length) { pairs.forEach(function (p) { lefts.push(p.left); rights.push(p.right); }); }
+      else if (q.options && q.options.length >= 2) {
+        for (var i = 0; i + 1 < q.options.length; i += 2) { lefts.push(q.options[i]); rights.push(q.options[i + 1]); }
+      }
+      function col(side, arr) {
+        return '<div class="match-col ' + side + '">' + arr.map(function (t, i) {
+          return '<button class="match-item" type="button" data-side="' + side + '" data-idx="' + i + '">' + esc(t) + '</button>';
+        }).join("") + '</div>';
+      }
+      return '<div class="match-area" id="matchArea"><svg class="match-lines" id="matchLines"></svg>' +
+        '<div class="match-cols">' + col("left", lefts) + col("right", rights) + '</div>' +
+        '<p class="match-tip">点左边一个，再点右边一个，就能连起来啦～</p></div>';
+    },
+    bind: function (host, q, qz) {
+      var area = host.querySelector("#matchArea");
+      var lines = host.querySelector("#matchLines");
+      var conns = [], pending = null;
+      var lefts = [], rights = [];
+      var pairs = q.pairs || [];
+      if (pairs.length) { pairs.forEach(function (p) { lefts.push(p.left); rights.push(p.right); }); }
+      else if (q.options) { for (var i = 0; i + 1 < q.options.length; i += 2) { lefts.push(q.options[i]); rights.push(q.options[i + 1]); } }
+      function svgLine(a, b, cls) {
+        // match-area 已 position:relative，子元素 offsetLeft/Top 即相对于它，无需再减
+        var x1 = a.offsetLeft + a.offsetWidth / 2;
+        var y1 = a.offsetTop + a.offsetHeight / 2;
+        var x2 = b.offsetLeft + b.offsetWidth / 2;
+        var y2 = b.offsetTop + b.offsetHeight / 2;
+        var ln = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        ln.setAttribute("x1", x1); ln.setAttribute("y1", y1); ln.setAttribute("x2", x2); ln.setAttribute("y2", y2);
+        ln.setAttribute("class", "ml" + (cls ? " " + cls : "")); lines.appendChild(ln);
+      }
+      function redraw(feedback) {
+        lines.innerHTML = "";
+        Array.prototype.forEach.call(area.querySelectorAll(".match-item"), function (x) { x.classList.remove("done", "correct", "wrong"); });
+        var okPairs = pairs.length ? pairs : lefts.map(function (l, i) { return { left: l, right: rights[i] }; });
+        conns.forEach(function (c) {
+          var la = area.querySelector('.match-item[data-side="left"][data-idx="' + c.l + '"]');
+          var ra = area.querySelector('.match-item[data-side="right"][data-idx="' + c.r + '"]');
+          if (!la || !ra) return;
+          var isRight = okPairs.some(function (p) { return p.left === lefts[c.l] && p.right === rights[c.r]; });
+          if (feedback) {
+            svgLine(la, ra, isRight ? "correct" : "wrong");
+            la.classList.add(isRight ? "correct" : "wrong");
+            ra.classList.add(isRight ? "correct" : "wrong");
+          } else {
+            svgLine(la, ra);
+            la.classList.add("done"); ra.classList.add("done");
+          }
+        });
+      }
+      Array.prototype.forEach.call(area.querySelectorAll(".match-item"), function (b) {
+        b.addEventListener("click", function () {
+          var side = b.getAttribute("data-side"), idx = +b.getAttribute("data-idx");
+          if (side === "left") {
+            Array.prototype.forEach.call(area.querySelectorAll('.match-item[data-side="left"]'), function (x) { x.classList.remove("pend"); });
+            b.classList.add("pend"); pending = idx;
+          } else {
+            if (pending === null) { Pet.say("先点左边一个哦～", 1500); return; }
+            conns = conns.filter(function (c) { return c.r !== idx && c.l !== pending; });
+            conns.push({ l: pending, r: idx });
+            Array.prototype.forEach.call(area.querySelectorAll('.match-item[data-side="left"]'), function (x) { x.classList.remove("pend"); });
+            pending = null; redraw();
+          }
+        });
+      });
+      var actions = host.querySelector("#qActions");
+      actions.innerHTML = '<button class="btn primary" id="submitBtn">提交</button>';
+      actions.querySelector("#submitBtn").addEventListener("click", function () {
+        var leftCount = area.querySelectorAll('.match-item[data-side="left"]').length;
+        if (conns.length < leftCount) { Pet.say("还有没连的哦～", 1800); return; }
+        var okPairs = pairs.length ? pairs : lefts.map(function (l, i) { return { left: l, right: rights[i] }; });
+        var allRight = conns.every(function (c) {
+          return okPairs.some(function (p) { return p.left === lefts[c.l] && p.right === rights[c.r]; });
+        });
+        redraw(true); // 用颜色标出对错
+        if (!allRight) {
+          var fb = host.querySelector("#qFeedback");
+          fb.innerHTML = '<div class="fb bad">❌ 有几对连错啦，再看看～<br><b>正确连连看：</b>' +
+            okPairs.map(function (p) { return esc(p.left) + "—" + esc(p.right); }).join("，") + '</div>';
+          return;
+        }
+        afterAnswer(true, q, qz, host, conns.map(function (c) { return lefts[c.l] + "—" + rights[c.r]; }).join("，"));
+      });
+    }
+  });
+
+  // fill：数字填空（数学，保持原样）
+  registerType("fill", {
+    renderBody: function (q) { return qInput('type="text" inputmode="numeric" pattern="[0-9]*" placeholder="在这里写出数字答案…"'); },
+    bind: function (host, q, qz) { bindText(host, q, qz); }
+  });
+
+  // fill_hanzi：汉字作答 —— 答案字在本单元已学生字表→手写板；否则自动降级选汉字
+  registerType("fill_hanzi", {
+    renderBody: function (q, qz) {
+      var chars = unitLearnedChars(qz && qz.ctx ? qz.ctx.unitId : null);
+      var canHand = chars.indexOf(q.answer) >= 0;
+      if (canHand) {
+        return '<div class="hw-wrap" id="hwWrap"><canvas id="hwCanvas" class="hw-canvas" width="600" height="220"></canvas>' +
+          '<button class="btn ghost" id="hwClear" type="button">清除重写</button></div>' +
+          '<p class="match-tip">用手指或鼠标，在框里写出这个字～</p>';
+      }
+      var opts = (q.options && q.options.length) ? q.options.slice() : [q.answer];
+      if (opts.indexOf(q.answer) < 0) opts.unshift(q.answer);
+      return '<div class="q-options btn-grid" id="optGrid">' +
+        opts.map(function (o) { return '<button class="opt-btn" type="button" data-val="' + esc(o) + '">' + esc(o) + '</button>'; }).join("") +
+        '</div>';
+    },
+    bind: function (host, q, qz) {
+      var chars = unitLearnedChars(qz && qz.ctx ? qz.ctx.unitId : null);
+      if (chars.indexOf(q.answer) >= 0) { mountHandwrite(host, q, qz); return; }
+      bindChoice(host, q, qz);
+    }
+  });
+
+  // read_comp：阅读理解（语段 + 多道子题）
+  // 子题若有 options → 点选作答（一年级友好）；否则 → 文本输入
+  registerType("read_comp", {
+    renderBody: function (q) {
+      var h = '<div class="read-passage">' + esc(q.passage || "") + '</div>';
+      (q.questions || []).forEach(function (sq, i) {
+        h += '<div class="read-sub"><div class="read-sub-stem">' + (i + 1) + '. ' + esc(sq.stem) + '</div>';
+        if (sq.options && sq.options.length) {
+          h += '<div class="q-options btn-grid" id="ransGrid' + i + '">' +
+            sq.options.map(function (o) { return '<button class="opt-btn" type="button" data-idx="' + i + '" data-val="' + esc(o) + '">' + esc(o) + '</button>'; }).join("") +
+            '</div>';
+        } else {
+          h += '<input class="q-input read-ans" id="rans' + i + '" type="text" placeholder="写下你的答案…">';
+        }
+        h += '</div>';
+      });
+      return h;
+    },
+    bind: function (host, q, qz) {
+      var actions = host.querySelector("#qActions");
+      var feedback = host.querySelector("#qFeedback");
+      // 选择题子题：绑定点选高亮
+      Array.prototype.forEach.call(host.querySelectorAll('[id^="ransGrid"]'), function (grid) {
         Array.prototype.forEach.call(grid.querySelectorAll(".opt-btn"), function (b) {
           b.addEventListener("click", function () {
             Array.prototype.forEach.call(grid.querySelectorAll(".opt-btn"), function (x) { x.classList.remove("selected"); });
             b.classList.add("selected");
-            b.setAttribute("data-selected", "1");
           });
         });
-      }
-    }
-
-    if (q.type === "match") {
-      actions.innerHTML = '<button class="btn primary" id="revealBtn">看答案</button>';
-      actions.querySelector("#revealBtn").addEventListener("click", function () {
-        var fbVoice = (q.audio) ? ' <button type="button" class="speak-btn q-voice-fb">🔊 读解析</button>' : '';
-        feedback.innerHTML = '<div class="fb ok"><b>参考答案：</b>' + esc(q.answer) + fbVoice + '<br><span class="an">' + esc(q.analysis) + '</span></div>';
-        var fbBtn = feedback.querySelector(".q-voice-fb");
-        if (fbBtn) {
-          fbBtn.addEventListener("click", function () {
-            speakGroup(fbBtn, [
-              { text: "参考答案：" + q.answer, key: q.audio ? q.audio.answer : null },
-              { text: q.analysis, key: q.audio ? q.audio.analysis : null }
-            ]);
-          });
-        }
-        actions.innerHTML = '<button class="btn" id="gotIt">我懂了 ✓</button><button class="btn warn" id="noIt">还不会</button>';
-        actions.querySelector("#gotIt").addEventListener("click", function () { afterAnswer(true, q, qz, host); });
-        actions.querySelector("#noIt").addEventListener("click", function () { afterAnswer(false, q, qz, host); });
       });
-      return;
+      actions.innerHTML = '<button class="btn primary" id="submitBtn">提交</button>';
+      actions.querySelector("#submitBtn").addEventListener("click", function () {
+        var allCorrect = true, parts = [];
+        (q.questions || []).forEach(function (sq, i) {
+          var ua = "";
+          if (sq.options && sq.options.length) {
+            var sel = host.querySelector('#ransGrid' + i + ' .opt-btn.selected');
+            ua = sel ? sel.getAttribute("data-val") : "";
+          } else {
+            var inp = host.querySelector("#rans" + i);
+            ua = inp ? inp.value : "";
+          }
+          parts.push(ua);
+          if (!S.isAnswerCorrect(ua, sq.answer)) allCorrect = false;
+        });
+        if (parts.some(function (p) { return !p.trim(); })) { Pet.say("每道题都要答哦～", 1800); return; }
+        if (!allCorrect) {
+          feedback.innerHTML = '<div class="fb bad">❌ 再想想～<br><b>参考答案：</b>' +
+            (q.questions || []).map(function (sq) { return esc(sq.answer); }).join("；") +
+            '<br><span class="an">' + esc(q.analysis || "") + '</span></div>';
+        }
+        afterAnswer(allCorrect, q, qz, host, parts.join(" | "));
+      });
     }
-    actions.innerHTML = '<button class="btn primary" id="submitBtn">提交</button>';
-    actions.querySelector("#submitBtn").addEventListener("click", function () {
-      var userAns;
-      if (q.type === "choice" || q.type === "judge") {
-        var sel = host.querySelector('.opt-btn.selected');
-        if (!sel) { Pet.say("先点选一个答案吧～", 1800); return; }
-        userAns = sel.getAttribute("data-val");
-      } else {
+  });
+
+  // recite：背诵（录音回放 + 自评）
+  registerType("recite", {
+    renderBody: function (q) {
+      return '<div class="recite-box">' + esc(q.text || q.stem || "") + '</div>' +
+        '<div class="rec-box" id="recBox">' +
+        '<button class="btn" id="recBtn" type="button">🎤 录音</button>' +
+        '<button class="btn ghost" id="playBtn" type="button" style="display:none">▶️ 回放</button>' +
+        '<span class="rec-status" id="recStatus">读给爸爸妈妈听，再点下面的按钮自评～</span></div>';
+    },
+    bind: function (host, q, qz) {
+      mountRecorder(host, q, function () {});
+      var actions = host.querySelector("#qActions");
+      var feedback = host.querySelector("#qFeedback");
+      actions.innerHTML = '<button class="btn primary" id="okBtn">我说对了 ✓</button><button class="btn ghost" id="noBtn">再练练</button>';
+      actions.querySelector("#okBtn").addEventListener("click", function () {
+        feedback.innerHTML = '<div class="fb ok">🌟 真棒，记住啦！</div>';
+        afterAnswer(true, q, qz, host, "已背诵");
+      });
+      actions.querySelector("#noBtn").addEventListener("click", function () {
+        feedback.innerHTML = '<div class="fb bad">💡 多读几遍就记住啦～</div>';
+        afterAnswer(false, q, qz, host, "未背诵");
+      });
+    }
+  });
+
+  // write：看图/看情景说一句话（录音作答 + 可选辅助书写）
+  // 一年级上不会写长句/拼音，以“说”为主；会写的字可写在辅助框里
+  registerType("write", {
+    renderBody: function (q) {
+      return '<div class="rec-box" id="recBox">' +
+        '<button class="btn" id="recBtn" type="button">🎤 按住说一句话</button>' +
+        '<button class="btn ghost" id="playBtn" type="button" style="display:none">▶️ 回放</button>' +
+        '<span class="rec-status" id="recStatus">看图/看情景，用一句话说出来～</span></div>' +
+        '<details class="write-extra"><summary>我会写几个字，写在这里</summary>' +
+        '<textarea class="q-textarea" id="ans" placeholder="会写的字可以写在这里（不会写用拼音）…"></textarea></details>';
+    },
+    bind: function (host, q, qz) {
+      var recorded = false;
+      mountRecorder(host, q, function () { recorded = true; });
+      var actions = host.querySelector("#qActions");
+      var feedback = host.querySelector("#qFeedback");
+      actions.innerHTML = '<button class="btn primary" id="submitBtn">我说好了</button>';
+      actions.querySelector("#submitBtn").addEventListener("click", function () {
         var inp = host.querySelector("#ans");
-        userAns = inp.value;
-        if (!userAns.trim()) { Pet.say("先把答案写上去哦～", 1800); return; }
-      }
-      var correct = S.isAnswerCorrect(userAns, q.answer);
-      afterAnswer(correct, q, qz, host, userAns);
-    });
+        var written = inp ? inp.value.trim() : "";
+        if (!recorded && !written) { Pet.say("先点🎤录音说一句话，或者写几个字哦～", 2200); return; }
+        var note = recorded ? "🎤 已录音" : "";
+        if (written) note += (note ? "，" : "") + "✏️ 写了：" + written;
+        feedback.innerHTML = '<div class="fb ok">✏️ 说得好！请爸爸妈妈听听你说了什么～<br><span class="an">' + esc(note) + '</span></div>';
+        afterAnswer(true, q, qz, host, note || "已口头作答");
+      });
+    }
+  });
+
+  // 兜底：任何未注册题型都不白屏，给一个文本输入
+  registerType("__default", {
+    renderBody: function (q) { return qInput('type="text" placeholder="写下你的答案…"'); },
+    bind: function (host, q, qz) { bindText(host, q, qz); }
+  });
+
+  function questionHTML(q, qz) {
+    var voiceBtn = (q.audio && q.audio.stem) ? '<button type="button" class="speak-btn q-voice-stem">🔊 读题目</button>' : '';
+    var h = '<div class="q-stem">' + esc(q.stem) + voiceBtn + '</div>';
+    if (q.image) h += '<div class="q-img"><img src="' + esc(q.image) + '" alt="" loading="lazy"></div>';
+    var t = QUESTION_TYPES[q.type] || QUESTION_TYPES.__default;
+    h += t.renderBody(q, qz);
+    return h;
+  }
+
+  function bindQuestion(host, q, qz) {
+    var stemBtn = host.querySelector(".q-voice-stem");
+    if (stemBtn) {
+      stemBtn.addEventListener("click", function () { speak(stemBtn, q.stem, q.audio ? q.audio.stem : null); });
+    }
+    var t = QUESTION_TYPES[q.type] || QUESTION_TYPES.__default;
+    t.bind(host, q, qz);
   }
 
   function afterAnswer(correct, q, qz, host, userAns) {
