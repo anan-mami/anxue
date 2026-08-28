@@ -1104,8 +1104,8 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
   var S = window.Store;
   var BOOK = null; // 当前显示的「册」数据（math1a / math1b 对象），随切换重赋值
 
-  var SUBJECT_ICONS = { "语文": "📖", "数学": "🔢", "英语": "🔤", "科学": "🔬", "道法": "🌟" };
-  var ALL_SUBJECTS = ["语文", "数学", "英语", "科学", "道法"];
+  var SUBJECT_ICONS = { "语文": "📖", "数学": "🔢", "英语": "🔤" };
+  var ALL_SUBJECTS = ["语文", "数学", "英语"];
   var MODULES = ["同步内容", "易错点", "每日练习", "单元测"];
   var LEVELS = ["基础", "提高", "拓展"];
 
@@ -1436,10 +1436,8 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
       MODULES.map(function (m) {
         var active = App.view.module === m;
         var extra = "";
-        if (m === "同步内容" || m === "易错点" || m === "每日练习") {
+        if (m === "同步内容" || m === "易错点" || m === "每日练习" || m === "单元测") {
           extra = unitDropdown(unit.unit_id);
-        } else if (m === "单元测") {
-          extra = testTypeDropdown();
         }
         return '<div class="mod-wrap ' + (active ? "active" : "") + '" data-mod="' + esc(m) + '">' +
           '<button class="mod-btn">' + esc(m) + '</button>' + extra + '</div>';
@@ -1470,16 +1468,6 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
         renderSubject();
       });
     }
-    // 绑定测试类型下拉
-    var testSel = document.getElementById("testSelect");
-    if (testSel) {
-      testSel.addEventListener("change", function (e) {
-        App.view.testType = e.target.value;
-        App.view.testPaper = 0; // 切换测试类型时重置选卷
-        renderSubject();
-      });
-    }
-
     var c = document.getElementById("mcontent");
     if (App.view.module === "同步内容") renderSync(c, unit);
     else if (App.view.module === "易错点") renderErrorProne(c, unit);
@@ -1493,14 +1481,6 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
       return '<option value="' + esc(uid) + '" ' + (selectedUid === uid ? "selected" : "") + '>' + esc(t.title) + '</option>';
     }).join("");
     return '<select class="unit-select" id="unitSelect">' + opts + '</select>';
-  }
-
-  function testTypeDropdown() {
-    var map = { unit: "单元测", mid: "期中测", final: "期末测" };
-    var opts = Object.keys(map).map(function (k) {
-      return '<option value="' + esc(k) + '" ' + (App.view.testType === k ? "selected" : "") + '>' + esc(map[k]) + '</option>';
-    }).join("");
-    return '<select class="unit-select" id="testSelect">' + opts + '</select>';
   }
 
     function renderChineseSync(c, unit) {
@@ -1678,61 +1658,14 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
     startQuiz(body, qs, { unitId: unit.unit_id, module: "每日练习", level: App.view.level, title: App.view.level + "练习" });
   }
 
-  function renderTest(c) {
-    if (App.view.testType === "mid" || App.view.testType === "final") {
-      var isMid = App.view.testType === "mid";
-      var papers = isMid ? (BOOK.mid_term || []) : (BOOK.final_exam || []);
-      if (!papers.length) {
-        c.innerHTML = emptyHint(isMid
-          ? "期中测暂无本地素材，待老师补充后上线"
-          : "期末测暂无本地素材，待老师补充后上线");
-        return;
-      }
-      if (App.view.testPaper == null || App.view.testPaper >= papers.length) App.view.testPaper = 0;
-      var p = papers[App.view.testPaper];
-
-      // 多套试卷时显示选卷标签
-      var tabs = "";
-      if (papers.length > 1) {
-        tabs = '<div class="paper-tabs">' + papers.map(function (pp, i) {
-          return '<button class="ptab ' + (i === App.view.testPaper ? "active" : "") + '" data-p="' + i + '">' + esc(pp.title) + "</button>";
-        }).join("") + "</div>";
-      }
-      c.innerHTML = '<div class="test-head"><h2>' + esc(p.title) + "</h2>" + tabs +
-        '<div class="test-tools">' +
-        '<button class="btn ghost" id="toggleAnsBtn">📝 显示答案</button>' +
-        '<button class="btn ghost" id="printTestBtn">🖨️ 打印试卷</button>' +
-        "</div></div>" +
-        '<article class="paper-doc" id="paperBody">' + (p.paper || '<div class="empty">本卷暂无内容</div>') + '</article>' +
-        '<article class="paper-doc answer-doc" id="answerBody" style="display:none;">' +
-        ((p.answer && p.answer.trim()) ? p.answer : '<div class="empty">本卷无独立答案，请参考原卷。</div>') +
-        '</article>';
-
-      Array.prototype.forEach.call(c.querySelectorAll("[data-p]"), function (b) {
-        b.addEventListener("click", function () {
-          App.view.testPaper = parseInt(b.getAttribute("data-p"), 10);
-          renderTest(c);
-        });
-      });
-      var tb = c.querySelector("#toggleAnsBtn");
-      if (tb) tb.addEventListener("click", function () {
-        var ab = c.querySelector("#answerBody");
-        var showing = ab.style.display !== "none";
-        ab.style.display = showing ? "none" : "";
-        tb.textContent = showing ? "📝 显示答案" : "📝 隐藏答案";
-      });
-      var pb = c.querySelector("#printTestBtn");
-      if (pb) pb.addEventListener("click", function () { window.print(); });
-      return;
-    }
-
+    function renderTest(c) {
     var unit = unitById(App.view.unitId);
     var qs3 = unit.unit_test || [];
     if (!qs3.length) { c.innerHTML = emptyHint("本单元暂无单元测"); return; }
     startQuiz(c, qs3, { unitId: unit.unit_id, module: "单元测", level: null, title: "单元测" });
   }
 
-  // 期中/期末的数据结构是 [{title, paper(HTML), answer(HTML|null)}]，
+// 期中/期末的数据结构是 [{title, paper(HTML), answer(HTML|null)}]，
   // 不再走交互引擎（题型不受一年级红线约束，按原素材忠实还原）。
   function normalizePapers(raw) {
     return raw || [];
