@@ -1407,7 +1407,7 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
         '<div class="dash-card pet-card" data-go="pet">' +
           '<div class="dash-icon">🐱</div>' +
           '<h3>我的宠物</h3>' +
-          '<p class="dash-sub">' + (S.state().pet.fedToday ? "今天已喂饭，小喵很开心～" : "记得喂小喵吃饭哦～") + '</p>' +
+          '<p class="dash-sub">通过学习为它获得食物→喂食互动→升级解锁新动作</p>' +
           '<button class="btn">去互动</button>' +
         '</div>' +
       '</div>' +
@@ -2143,10 +2143,10 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
         if (nextLv && S.awardBadge("lvl_" + qz.ctx.unitId + "_" + qz.ctx.level, "过关·" + qz.ctx.level, "⭐")) {
           html += '<p class="badge-get">获得徽章 ⭐ 过关·' + esc(qz.ctx.level) + '</p>';
         }
-        Pet.say("太棒了！" + (nextLv ? "「" + nextLv + "」解锁啦！" : "全部通关！"), 3000);
+        toast("🎯 本阶达标！宠物收到 +1 食物，去小屋看看 →");
       } else {
         html += '<p class="unlock-no">还需努力：本阶正确率需达到 ' + Math.round(thr * 100) + '% 才解锁下一阶（本次 ' + Math.round(acc * 100) + '%）。</p>';
-        Pet.say("差一点点，再练练基础就能解锁下一阶！", 2800);
+        toast("差一点点，再练练基础就能解锁下一阶～");
       }
       S.markDaily("daily_" + qz.ctx.unitId);
     }
@@ -2155,17 +2155,15 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
         if (S.awardBadge("ut_" + qz.ctx.unitId, "单元测过关", "🏆")) {
           html += '<p class="badge-get">获得徽章 🏆 单元测过关</p>';
         }
-        Pet.say("单元测过关，你真厉害！", 2800);
+        toast("🏆 单元测过关！宠物收到 +1 食物，去小屋看看 →");
       } else {
-        Pet.say("单元测再复习一下，下次拿满分！", 2800);
+        toast("单元测再复习一下，下次拿满分～");
       }
       S.markDaily("unit_test_" + qz.ctx.unitId);
     }
-    if (qz.ctx.module === "期中测" || qz.ctx.module === "期末测") {
-      S.markDaily(qz.ctx.module);
-      Pet.say(acc >= thr ? "测验完成，继续保持！" : "做完了，错题本会帮你记着～", 2800);
-    }
-
+    // 宠物联动展示（一目了然：完成学习→为宠物+1 食物）
+    html += '<div class="pet-link"><span>📚 本次学习已为宠物送去 <b>+1 食物</b></span>' +
+      '<button class="btn primary" id="goPetBtn" style="margin-left:8px;">🐾 去宠物小屋看看</button></div>';
     html += '<div class="result-actions"><button class="btn" id="againBtn">再做一次</button>' +
       '<button class="btn ghost" id="backBtn">返回</button></div></div>';
     host.innerHTML = html;
@@ -2174,7 +2172,8 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
       if (App.view.page === "mistakes") renderMistakes();
       else renderSubject();
     });
-    notifyPetStudy(1);  // 一轮学习完成 → 通知宠物系统
+    host.querySelector("#goPetBtn").addEventListener("click", function () { navigate({ page: "pet" }); });
+    notifyPetStudy(2);  // 一轮学习完成 → 通知宠物系统（每轮 +2 食物）
   }
 
   /* ----------------------------- 学情看板 ----------------------------- */
@@ -2347,12 +2346,8 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
   /* ----------------------------- 启动 ----------------------------- */
   function init() {
     buildLayout();
-    Pet.render(petHostEl);
-    // 右下角宠物点击 → 进入宠物小屋（喂饭按钮除外）
-    petHostEl.addEventListener("click", function (e) {
-      if (e.target.closest && e.target.closest("#petFeedBtn")) return;
-      navigate({ page: "pet" });
-    });
+    // 删掉右下角旧 SVG 猫挂件（用户已在新宠物小屋选了自己喜欢的宠物，不显示旧"小喵"）
+    if (petHostEl && petHostEl.parentNode) petHostEl.parentNode.removeChild(petHostEl);
     setupImageZoom();
     setBook(); // 首次进入即确定当前册数据
     if (!S.state().userName) {
@@ -2363,7 +2358,6 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
       var tick = S.petTick();
       greet(tick);
     }
-    Pet.refresh();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

@@ -641,17 +641,30 @@
       var n = parseInt(localStorage.getItem("pet_study_pending") || "0", 10);
       if(n > 0 && cur()){
         var p = cur();
+        var foodGot = {};
         for(var i=0;i<n;i++){
-          p.exp += 10; S.coins += 5;
+          p.exp += 20; S.coins += 10;  // 加大经验/金币奖励
           p.energy = Math.max(0, p.energy - 12);
-          p.mood = Math.min(100, p.mood + 6);
+          p.mood = Math.min(100, p.mood + 8);
           p.lastSeen = now();
-          var rewards = Object.keys(FOODS).filter(function(k){ return FOODS[k].fav.indexOf(p.type)>=0; });
-          var rk = rewards[Math.floor(Math.random()*rewards.length)];
-          S.food[rk] = (S.food[rk]||0)+1;
+          // 每次结算给当前宠物爱吃的 2 份食物
+          for(var j=0;j<2;j++){
+            var rewards = Object.keys(FOODS).filter(function(k){ return FOODS[k].fav.indexOf(p.type)>=0; });
+            var rk = rewards[Math.floor(Math.random()*rewards.length)];
+            S.food[rk] = (S.food[rk]||0)+1;
+            foodGot[rk] = (foodGot[rk]||0)+1;
+          }
         }
+        checkUnlock(p);
+        // 喂一次最爱食物，宠物立刻开心
+        var favFood = Object.keys(FOODS).filter(function(k){ return FOODS[k].fav.indexOf(p.type)>=0; })[0];
+        if(favFood && (S.food[favFood]||0) > 0){ feed(favFood); }
         save();
-        toast("📚 学习成果已到账：+"+(n*10)+"经验 +"+(n*5)+"🪙");
+        var foodList = Object.keys(foodGot).map(function(k){ return FOODS[k].e + "x" + foodGot[k]; }).join(" ");
+        toast("📚 学习成果到账！+"+(n*20)+"经验 +"+(n*10)+"🪙 +" + foodList + "（已喂给"+p.name+"）");
+        // 让宠物表演 happy2 庆祝
+        p.react = "happy2"; p.reactUntil = now() + 3000;
+        burst("🌟", 6);
         localStorage.removeItem("pet_study_pending");
       }
     }catch(e){}
