@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>我的宠物小屋</title>
+<style>
+  :root{
+    --bg1:#fff5ee; --bg2:#ffe9d6; --card:#ffffff; --ink:#5b4636;
+    --pink:#ff9aa2; --mint:#a8e6cf; --sun:#ffd3a5; --blue:#a0d8ff;
+    --shadow:0 8px 24px rgba(180,140,110,.18);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    min-height:100%;
+  }
+  .wrap{max-width:520px; margin:0 auto; padding:18px 14px 120px;}
+
+  /* 顶部标题 */
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .topbar h1{font-size:20px; margin:0; display:flex; align-items:center; gap:8px;}
+  .coins{background:#fff; border-radius:20px; padding:6px 14px; font-weight:700;
+    box-shadow:var(--shadow); font-size:14px;}
+
+  /* 宠物舞台 */
+  .stage{
+    position:relative; background:var(--card); border-radius:26px; padding:22px 16px 18px;
+    box-shadow:var(--shadow); text-align:center; overflow:hidden;
+    background:radial-gradient(120% 90% at 50% 0%, #fffdfb 0%, #fff3e9 100%);
+  }
+  .pet-img{width:200px; height:200px; object-fit:contain; transition:filter .3s;
+    filter:drop-shadow(0 10px 14px rgba(160,120,90,.25));}
+  .st-happy{animation:bounce .9s ease-in-out infinite;}
+  .st-normal{animation:sway 2.4s ease-in-out infinite;}
+  .st-sad{animation:shake 1.6s ease-in-out infinite;}
+  .st-tired{animation:breathe 3s ease-in-out infinite; filter:grayscale(.35) brightness(1.02) drop-shadow(0 10px 14px rgba(160,120,90,.25));}
+  .st-sleep{animation:breathe 4s ease-in-out infinite; filter:brightness(1.03);}
+  @keyframes sway{0%,100%{transform:translateY(0) rotate(-2.5deg)}50%{transform:translateY(-6px) rotate(2.5deg)}}
+  .pop{animation:pop .4s ease;}
+  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.16)}100%{transform:scale(1)}}
+
+  /* 装饰 */
+  .decor{position:absolute; top:18px; left:50%; transform:translateX(-50%); font-size:40px;
+    pointer-events:none; filter:drop-shadow(0 3px 4px rgba(0,0,0,.15));}
+
+  /* 气泡 */
+  .bubble{
+    position:absolute; top:14px; right:18px; max-width:160px; background:#fff;
+    border-radius:16px; padding:8px 12px; font-size:13px; line-height:1.3;
+    box-shadow:var(--shadow); animation:floatIn .4s ease;
+  }
+  .bubble:after{content:""; position:absolute; left:-7px; top:16px; border:7px solid transparent;
+    border-right-color:#fff;}
+  @keyframes floatIn{from{opacity:0; transform:translateY(-6px)}to{opacity:1}}
+
+  /* 名字牌 */
+  .nameplate{margin-top:8px; font-size:18px; font-weight:800;}
+  .nameplate small{font-weight:500; color:#a08a78; font-size:13px; margin-left:6px;}
+
+  /* 状态条 */
+  .bars{margin-top:14px; display:grid; gap:9px;}
+  .bar-row{display:flex; align-items:center; gap:10px; font-size:13px;}
+  .bar-row .lab{width:46px; text-align:right; color:#8a7464;}
+  .bar{flex:1; height:12px; border-radius:8px; background:#f0e4d8; overflow:hidden;}
+  .bar > i{display:block; height:100%; border-radius:8px; transition:width .4s;}
+  .bar.exp > i{background:linear-gradient(90deg,#ffd3a5,#ff9aa2);}
+  .bar.energy > i{background:linear-gradient(90deg,#a0d8ff,#a8e6cf);}
+  .mood-tag{display:inline-block; padding:4px 12px; border-radius:14px; font-size:13px; font-weight:700; color:#fff;}
+  .m-happy{background:#ff9aa2;} .m-normal{background:#a8e6cf;} .m-tired{background:#c9b8a8;} .m-sad{background:#a0d8ff;} .m-sleep{background:#b9b0c9;}
+
+  /* 食物库存 */
+  .food-stock{display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap;}
+  .food{background:#fff; border-radius:14px; padding:6px 10px; font-size:14px; box-shadow:var(--shadow); position:relative;}
+  .food b{font-weight:800;}
+  .food.empty{opacity:.4;}
+
+  /* 按钮区 */
+  .actions{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:16px;}
+  .btn{border:none; border-radius:16px; padding:13px 8px; font-size:15px; font-weight:700; color:#fff;
+    box-shadow:var(--shadow); cursor:pointer; transition:transform .1s; background:#ffb085;}
+  .btn:active{transform:scale(.95);}
+  .btn.feed{background:#ff9aa2;} .btn.play{background:#a8e6cf; color:#3c6b54;}
+  .btn.sleep{background:#b9b0c9; color:#fff;} .btn.study{background:#ffd3a5; color:#8a5a2b;}
+  .btn.exercise{background:#a0d8ff; color:#2b5a8a;}
+  .btn.wide{grid-column:span 2;}
+  .btn.ghost{background:#fff; color:#8a7464; border:1.5px solid #ecdccb;}
+
+  /* 进食选择浮层 */
+  .sheet-mask{position:fixed; inset:0; background:rgba(90,70,54,.35); display:none;
+    align-items:flex-end; justify-content:center; z-index:40;}
+  .sheet-mask.on{display:flex;}
+  .sheet{background:#fff; width:100%; max-width:520px; border-radius:22px 22px 0 0; padding:18px 16px 26px;
+    animation:up .3s ease;}
+  @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .sheet h3{margin:0 0 12px; font-size:16px; text-align:center;}
+  .food-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+  .food-opt{background:#fff7f0; border-radius:16px; padding:12px 4px; text-align:center; cursor:pointer;
+    box-shadow:var(--shadow); font-size:13px;}
+  .food-opt .e{font-size:30px;}
+  .food-opt.dis{opacity:.4; pointer-events:none;}
+
+  /* 领养流程 */
+  .adopt-mask{position:fixed; inset:0; background:linear-gradient(160deg,#fff5ee,#ffe2cf);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; z-index:60;}
+  .adopt-mask.hidden{display:none;}
+  .adopt-mask h2{font-size:22px; margin:0 0 4px;}
+  .adopt-mask p.sub{color:#a08a78; margin:0 0 22px; font-size:14px;}
+  .eggs{display:flex; gap:14px; flex-wrap:wrap; justify-content:center;}
+  .egg{width:96px; height:120px; border-radius:18px; background:#fff; box-shadow:var(--shadow);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;
+    transition:transform .15s; position:relative; overflow:hidden;}
+  .egg:active{transform:scale(.95);}
+  .egg .q{font-size:46px;}
+  .egg .t{font-size:13px; color:#a08a78; margin-top:6px;}
+  .egg.flip{animation:flip .5s ease;}
+  @keyframes flip{0%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+  .egg img{width:84px; height:84px; object-fit:contain;}
+  .egg .pick{margin-top:4px; font-size:12px; font-weight:700; color:#ff9aa2;}
+
+  .name-box{margin-top:24px; display:none; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:320px;}
+  .name-box.on{display:flex;}
+  .name-box img{width:120px; height:120px; object-fit:contain;}
+  .name-box input{width:100%; padding:12px 14px; border-radius:14px; border:1.5px solid #ecdccb;
+    font-size:16px; text-align:center; outline:none;}
+  .name-box .hint{font-size:12px; color:#a08a78;}
+
+  /* 换宠面板 */
+  .switch-mask{position:fixed; inset:0; background:rgba(90,70,54,.4); display:none;
+    align-items:center; justify-content:center; z-index:50; padding:20px;}
+  .switch-mask.on{display:flex;}
+  .switch-card{background:#fff; border-radius:22px; padding:20px; width:100%; max-width:420px; box-shadow:var(--shadow);}
+  .switch-card h3{margin:0 0 14px; text-align:center;}
+  .pet-list{display:grid; gap:10px;}
+  .pet-item{display:flex; align-items:center; gap:12px; padding:10px; border-radius:16px; background:#fff7f0;
+    cursor:pointer; box-shadow:var(--shadow);}
+  .pet-item .pi{width:56px; height:56px; object-fit:contain;}
+  .pet-item .pn{font-weight:700;}
+  .pet-item .pm{font-size:12px; color:#a08a78;}
+  .pet-item .badge{margin-left:auto; font-size:12px; background:#ff9aa2; color:#fff; padding:4px 10px; border-radius:12px;}
+  .pet-item .badge.lock{background:#cdbfb1;}
+
+  /* 浮动按钮 */
+  .fab{position:fixed; right:16px; bottom:18px; z-index:30; display:flex; align-items:center; gap:8px;
+    background:#fff; border-radius:30px; padding:6px 14px 6px 6px; box-shadow:var(--shadow); cursor:pointer;}
+  .fab img{width:46px; height:46px; border-radius:50%; object-fit:cover; background:#fff3e9;}
+  .fab .fn{font-weight:700; font-size:14px;}
+  .fab .fb{font-size:12px; color:#a08a78; max-width:120px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+  .fab .dot{position:absolute; top:-2px; right:-2px; width:14px; height:14px; border-radius:50%; background:#ff6b6b;
+    border:2px solid #fff; display:none;}
+  .fab.sad .dot{display:block;}
+
+  /* 全屏小屋 */
+  .modal-mask{position:fixed; inset:0; background:rgba(90,70,54,.45); display:none; z-index:35;}
+  .modal-mask.on{display:block;}
+  .modal{position:absolute; left:0; right:0; bottom:0; max-width:520px; margin:0 auto; background:#fff;
+    border-radius:24px 24px 0 0; padding:18px 16px 26px; box-shadow:var(--shadow); max-height:92vh; overflow:auto;}
+  .modal .close{position:absolute; right:16px; top:14px; font-size:22px; color:#a08a78; cursor:pointer; background:none; border:none;}
+
+  .toast{position:fixed; left:50%; top:24%; transform:translateX(-50%); background:rgba(91,70,54,.92); color:#fff;
+    padding:10px 18px; border-radius:20px; font-size:14px; z-index:99; opacity:0; transition:opacity .3s; pointer-events:none;}
+  .toast.on{opacity:1;}
+  .empty-tip{text-align:center; color:#a08a78; font-size:13px; margin-top:10px;}
+</style>
+</head>
+<body>
+
+<!-- 领养流程（首次） -->
+<div class="adopt-mask" id="adoptMask">
+  <h2>🥚 领养一只小伙伴</h2>
+  <p class="sub">点开神秘的蛋，看看是谁在等你～</p>
+  <div class="eggs" id="eggs"></div>
+  <div class="name-box" id="nameBox">
+    <img id="nbImg" src="" alt="">
+    <input id="nbInput" maxlength="6" placeholder="给它起个名字（最多6字）">
+    <div class="hint">不填就用默认名～</div>
+    <button class="btn wide" id="nbConfirm">确认领养 🏡</button>
+  </div>
+</div>
+
+<div class="wrap" id="mainWrap" style="display:none;">
+  <div class="topbar">
+    <h1>🐾 我的宠物小屋</h1>
+    <div class="coins">🪙 <span id="coinNum">0</span></div>
+  </div>
+
+  <div class="stage">
+    <div class="decor" id="decor" style="display:none;"></div>
+    <div class="bubble" id="bubble">你好呀～</div>
+    <img class="pet-img st-normal" id="petImg" src="" alt="pet">
+    <div class="nameplate"><span id="petName">--</span><small id="petLv">Lv.1</small></div>
+    <div class="bars">
+      <div class="bar-row"><span class="lab">经验</span><span class="bar exp"><i id="expBar" style="width:0%"></i></span></div>
+      <div class="bar-row"><span class="lab">活力</span><span class="bar energy"><i id="energyBar" style="width:100%"></i></span></div>
+      <div class="bar-row"><span class="lab">心情</span><span class="mood-tag m-normal" id="moodTag">正常</span></div>
+    </div>
+    <div class="food-stock" id="foodStock"></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="btnPet">🤚 抚摸</button>
+    <button class="btn play" id="btnPlay">🎾 陪玩</button>
+    <button class="btn feed" id="btnFeed">🍎 喂食</button>
+    <button class="btn sleep" id="btnSleep">😴 睡觉</button>
+    <button class="btn study wide" id="btnStudy">📚 模拟：完成一节学习</button>
+    <button class="btn exercise wide" id="btnExercise">🏃 模拟：运动打卡</button>
+    <button class="btn ghost" id="btnSwitch">🔄 换一只（50🪙）</button>
+  </div>
+  <div class="empty-tip">下面两个按钮是给“学习台”联动演示用的；真实学习台里每次学习/运动都会自动给宠物加经验与食物。</div>
+</div>
+
+<!-- 浮动按钮 -->
+<div class="fab" id="fab" style="display:none;">
+  <span class="dot"></span>
+  <img id="fabImg" src="" alt="">
+  <div><div class="fn" id="fabName">--</div><div class="fb" id="fabBubble">你好～</div></div>
+</div>
+
+<!-- 喂食浮层 -->
+<div class="sheet-mask" id="feedMask">
+  <div class="sheet">
+    <h3>喂点什么好呢？</h3>
+    <div class="food-grid" id="foodGrid"></div>
+    <div style="text-align:center;margin-top:14px;">
+      <button class="btn ghost" id="feedCancel" style="max-width:200px;">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 换宠面板 -->
+<div class="switch-mask" id="switchMask">
+  <div class="switch-card">
+    <h3>选择要陪伴你的小伙伴</h3>
+    <div class="pet-list" id="petList"></div>
+    <div style="text-align:center;margin-top:14px;">
+      <button class="btn ghost" id="switchCancel" style="max-width:200px;">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 小屋全屏（复用 main 内容，这里用弹窗包裹感） -->
+<div class="modal-mask" id="modalMask"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "pet_v1";
+  var D = "assets/pets/";
+  var TYPES = {
+    monkey:{label:"小猴子", defName:"小猴", pref:"banana",
+      img:{main:D+"monkey.png", happy:D+"monkey_happy.png", sad:D+"monkey_sad.png", sleep:D+"monkey_sleep.png"}},
+    cat:{label:"暹罗猫", defName:"喵喵", pref:"fish",
+      img:{main:D+"cat.png", happy:D+"cat_happy.png", sad:D+"cat_sad.png", sleep:D+"cat_sleep.png"}},
+    dog:{label:"小奶狗", defName:"狗狗", pref:"bone",
+      img:{main:D+"dog.png", happy:D+"dog_happy.png", sad:D+"dog_sad.png", sleep:D+"dog_sleep.png"}}
+  };
+  var FOODS = {
+    banana:{e:"🍌", name:"香蕉", fav:["monkey"]},
+    fish:{e:"🐟", name:"鱼干", fav:["cat"]},
+    bone:{e:"🦴", name:"骨头", fav:["dog"]},
+    apple:{e:"🍎", name:"苹果", fav:["monkey","cat","dog"]}
+  };
+  var BUBBLES = {
+    happy:["陪我玩嘛～","今天超开心！","你最好啦！","学完啦好棒！"],
+    normal:["在发呆…","要不要一起学？","今天天气真好","摸摸我呀"],
+    tired:["有点累…","想歇会儿","学了好多呢","喝口水先"],
+    sad:["你怎么才来…","想你陪我…","我等好久了","委屈巴巴"],
+    sleep:["zzz…","梦里见","晚安…","呼噜呼噜"]
+  };
+  var DECOR_UNLOCK = [
+    {key:"hat", e:"🎩", exp:50, name:"小礼帽"},
+    {key:"scarf", e:"🧣", exp:100, name:"围巾"},
+    {key:"ball", e:"⚽", exp:150, name:"玩具球"}
+  ];
+
+  function now(){return Date.now();}
+  function $(id){return document.getElementById(id);}
+  function rnd(a){return a[Math.floor(Math.random()*a.length)];}
+
+  function defaultState(){
+    return {pets:{}, current:null, coins:0,
+      food:{banana:0,fish:0,bone:0,apple:0}, decor:{hat:false,scarf:false,ball:false}, equipped:[]};
+  }
+  var S = load();
+  function load(){
+    try{var r=localStorage.getItem(KEY); if(r) return Object.assign(defaultState(), JSON.parse(r));}catch(e){}
+    return defaultState();
+  }
+  function save(){ try{localStorage.setItem(KEY, JSON.stringify(S));}catch(e){} }
+
+  function cur(){ return S.current ? S.pets[S.current] : null; }
+  function newPet(type){
+    return {type:type, name:TYPES[type].defName, exp:0, energy:100, mood:55, lastSeen:now(), sleeping:false};
+  }
+
+  // 情绪计算
+  function baseMood(p){
+    var days = (now()-p.lastSeen)/86400000;
+    if(days>3) return "sad";
+    if(p.energy<25) return "tired";
+    if(p.mood>=70) return "happy";
+    return "normal";
+  }
+  function showMoodOf(p){
+    if(p.sleeping) return "sleep";
+    if(p.react && now() < p.reactUntil){
+      if(p.react==="sleep") return "sleep";
+      if(p.react==="sad") return "sad";
+      return "happy";
+    }
+    return baseMood(p);
+  }
+  function imgFor(type, m){
+    var t=TYPES[type].img;
+    if(m==="sleep") return t.sleep;
+    if(m==="happy") return t.happy;
+    if(m==="sad") return t.sad;
+    return t.main;
+  }
+  function levelOf(p){ return Math.floor(p.exp/50)+1; }
+
+  // ====== 渲染 ======
+  function render(){
+    var p = cur();
+    if(!p){ return; }
+    var m = showMoodOf(p);
+    var type = p.type;
+    // 舞台
+    var img = $("petImg");
+    img.src = imgFor(type, m);
+    img.className = "pet-img st-"+m;
+    $("petName").textContent = p.name;
+    $("petLv").textContent = "Lv."+levelOf(p);
+    var expPct = (p.exp%50)/50*100;
+    $("expBar").style.width = expPct+"%";
+    $("energyBar").style.width = Math.max(0,Math.min(100,p.energy))+"%";
+    var tag = $("moodTag");
+    var mtxt={happy:"开心",normal:"正常",tired:"疲倦",sad:"委屈",sleep:"睡觉"}[m];
+    tag.textContent = mtxt;
+    tag.className = "mood-tag m-"+m;
+    // 装饰
+    var dec=$("decor");
+    if(S.equipped && S.equipped.length){
+      dec.style.display="block";
+      dec.textContent = S.equipped.map(function(k){return DECOR_UNLOCK.filter(function(d){return d.key===k;})[0].e;}).join("");
+    } else dec.style.display="none";
+    // 食物库存
+    renderFood();
+    // 气泡
+    var bm = (p.react && now()<p.reactUntil && p.react!=="sleep") ? "happy" : m;
+    setBubble(rnd(BUBBLES[bm]));
+    // 浮动
+    $("fabImg").src = imgFor(type, m);
+    $("fabName").textContent = p.name;
+    $("fabBubble").textContent = rnd(BUBBLES[bm]);
+    $("fab").classList.toggle("sad", m==="sad");
+    $("coinNum").textContent = S.coins;
+  }
+  function renderFood(){
+    var box=$("foodStock"); box.innerHTML="";
+    Object.keys(FOODS).forEach(function(k){
+      var n=S.food[k]||0;
+      var el=document.createElement("div");
+      el.className="food"+(n<=0?" empty":"");
+      el.innerHTML=FOODS[k].e+" <b>"+n+"</b>";
+      box.appendChild(el);
+    });
+  }
+  function setBubble(txt){ var b=$("bubble"); b.textContent=txt; b.style.animation="none"; void b.offsetWidth; b.style.animation=""; }
+
+  function toast(t){ var el=$("toast"); el.textContent=t; el.classList.add("on"); setTimeout(function(){el.classList.remove("on");},1600); }
+
+  // ====== 互动 ======
+  function petNow(){
+    var p=cur(); if(!p) return;
+    p.mood=Math.min(100,p.mood+12); p.lastSeen=now();
+    p.react="happy"; p.reactUntil=now()+2500;
+    render(); save();
+  }
+  function playNow(){
+    var p=cur(); if(!p) return;
+    p.mood=Math.min(100,p.mood+16); p.energy=Math.max(0,p.energy-6); p.lastSeen=now();
+    p.react="happy"; p.reactUntil=now()+2500;
+    render(); save();
+  }
+  function sleepNow(){
+    var p=cur(); if(!p) return;
+    p.sleeping=true; p.react="sleep"; p.reactUntil=now()+30000; render(); save();
+    toast("💤 "+p.name+"睡着了，30秒后精神满满");
+    setTimeout(function(){ p.sleeping=false; p.react=null; p.energy=100; p.mood=Math.max(p.mood,60); p.lastSeen=now(); render(); save(); toast("☀️ 睡醒啦！活力恢复"); }, 30000);
+  }
+  function feed(type){
+    var p=cur(); if(!p) return;
+    if((S.food[type]||0)<=0){ toast("没有"+FOODS[type].name+"了，去学习赚奖励吧～"); return; }
+    S.food[type]--;
+    var fav = FOODS[type].fav.indexOf(p.type)>=0;
+    p.mood=Math.min(100, p.mood + (fav?20:8));
+    p.energy=Math.min(100, p.energy+ (fav?6:3));
+    p.lastSeen=now();
+    p.react="happy"; p.reactUntil=now()+2500;
+    render(); save();
+  }
+  function studyDone(){
+    var p=cur(); if(!p) return;
+    p.exp+=10; S.coins+=5; p.energy=Math.max(0,p.energy-12); p.mood=Math.min(100,p.mood+6); p.lastSeen=now();
+    // 随机食物奖励
+    var rewards=["banana","fish","bone","apple"];
+    var rk=rewards[Math.floor(Math.random()*rewards.length)];
+    S.food[rk]=(S.food[rk]||0)+1;
+    checkUnlock(p);
+    p.react="happy"; p.reactUntil=now()+2500;
+    render(); save();
+    toast("📚 +10经验 +5🪙 获得"+FOODS[rk].e+FOODS[rk].name);
+  }
+  function exerciseDone(){
+    var p=cur(); if(!p) return;
+    p.exp+=5; S.coins+=3; p.energy=Math.min(100,p.energy+25); p.mood=Math.min(100,p.mood+10); p.lastSeen=now();
+    p.react="happy"; p.reactUntil=now()+2500;
+    render(); save();
+    toast("🏃 +5经验 +3🪙 活力+25");
+  }
+  function checkUnlock(p){
+    DECOR_UNLOCK.forEach(function(d){
+      if(!S.decor[d.key] && p.exp>=d.exp){ S.decor[d.key]=true; toast("🎉 解锁装饰："+d.name+"！去换宠面板装备"); }
+    });
+  }
+  function popImg(){ var i=$("petImg"); i.classList.remove("pop"); void i.offsetWidth; i.classList.add("pop"); }
+
+  // ====== 领养 ======
+  function showAdopt(){
+    var eggs=$("eggs"); eggs.innerHTML="";
+    var order=["monkey","cat","dog"];
+    order.forEach(function(t){
+      var el=document.createElement("div"); el.className="egg"; el.dataset.type=t;
+      el.innerHTML='<div class="q">🥚</div><div class="t">神秘蛋</div>';
+      el.onclick=function(){
+        el.classList.add("flip");
+        setTimeout(function(){
+          el.innerHTML='<img src="'+TYPES[t].img.main+'"><div class="pick">领养它</div>';
+          el.onclick=function(){ openName(t); };
+        },500);
+      };
+      eggs.appendChild(el);
+    });
+    $("adoptMask").classList.remove("hidden");
+  }
+  var pendingType=null;
+  function openName(t){
+    pendingType=t;
+    $("nbImg").src=TYPES[t].img.main;
+    $("nbInput").value="";
+    $("nbInput").placeholder="给"+TYPES[t].label+"起个名字（最多6字）";
+    $("nameBox").classList.add("on");
+  }
+  function confirmAdopt(){
+    var t=pendingType; if(!t) return;
+    var nm=$("nbInput").value.trim().slice(0,6) || TYPES[t].defName;
+    S.pets[t]=newPet(t); S.pets[t].name=nm; S.current=t;
+    // 初始送点食物
+    S.food.banana+=1; S.food.apple+=1;
+    save();
+    $("adoptMask").classList.add("hidden");
+    enterApp();
+    toast("🏡 欢迎 "+nm+" 入住小屋！");
+  }
+
+  // ====== 换宠 ======
+  function openSwitch(){
+    if(S.coins<50){ toast("需要 50🪙 才能换宠哦"); return; }
+    var list=$("petList"); list.innerHTML="";
+    Object.keys(TYPES).forEach(function(t){
+      var owned = !!S.pets[t];
+      var p = S.pets[t];
+      var el=document.createElement("div"); el.className="pet-item";
+      var right = owned ? '<span class="badge">切换</span>' : '<span class="badge lock">未领养</span>';
+      var sub = owned ? ("Lv."+levelOf(p)+" · "+p.name) : TYPES[t].label;
+      el.innerHTML='<img class="pi" src="'+TYPES[t].img.main+'"><div><div class="pn">'+TYPES[t].label+'</div><div class="pm">'+sub+'</div></div>'+right;
+      el.onclick=function(){
+        if(owned){ S.current=t; S.coins-=50; save(); $("switchMask").classList.remove("on"); render(); toast("已切换到 "+p.name); }
+        else { S.coins-=50; save(); $("switchMask").classList.remove("on"); openName(t); }
+      };
+      list.appendChild(el);
+    });
+    $("switchMask").classList.add("on");
+  }
+
+  function enterApp(){
+    $("adoptMask").classList.add("hidden");
+    $("mainWrap").style.display="block";
+    $("fab").style.display="flex";
+    render();
+  }
+
+  // ====== 喂食浮层 ======
+  function openFeed(){
+    var g=$("foodGrid"); g.innerHTML="";
+    Object.keys(FOODS).forEach(function(k){
+      var n=S.food[k]||0;
+      var el=document.createElement("div");
+      el.className="food-opt"+(n<=0?" dis":"");
+      el.innerHTML='<div class="e">'+FOODS[k].e+'</div><div>'+FOODS[k].name+'</div><div>x'+n+'</div>';
+      el.onclick=function(){ if(n>0){ feed(k); $("feedMask").classList.remove("on"); } };
+      g.appendChild(el);
+    });
+    $("feedMask").classList.add("on");
+  }
+
+  // ====== 事件绑定 ======
+  $("btnPet").onclick=petNow;
+  $("btnPlay").onclick=playNow;
+  $("btnSleep").onclick=sleepNow;
+  $("btnFeed").onclick=openFeed;
+  $("btnStudy").onclick=studyDone;
+  $("btnExercise").onclick=exerciseDone;
+  $("btnSwitch").onclick=openSwitch;
+  $("feedCancel").onclick=function(){$("feedMask").classList.remove("on");};
+  $("switchCancel").onclick=function(){$("switchMask").classList.remove("on");};
+  $("nbConfirm").onclick=confirmAdopt;
+  $("fab").onclick=function(){ render(); toast("已刷新 "+cur().name+" 的状态"); };
+
+  // ====== 启动 ======
+  if(S.current && S.pets[S.current]){ enterApp(); }
+  else { showAdopt(); }
+
+  // 暴露给学习台调用
+  window.Pet = {
+    study: studyDone, exercise: exerciseDone, feed: feed,
+    pet: petNow, play: playNow, sleep: sleepNow,
+    open: function(){ render(); },
+    state: function(){ return S; }
+  };
+})();
+</script>
+</body>
+</html>
