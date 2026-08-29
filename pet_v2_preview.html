@@ -40,6 +40,9 @@
   .pet-tip{position:absolute; left:50%; transform:translateX(-50%); bottom:6px; font-size:11px;
     color:#b09a88; opacity:0; transition:opacity .4s; pointer-events:none; white-space:nowrap;}
   .pet-tip.on{opacity:1;}
+  .mech-tip{font-size:11px; color:#a08a78; margin:4px 0 2px; line-height:1.4;}
+  .unlock-tip{font-size:11px; color:#7a4b00; background:#fff7e6; border-radius:8px; padding:4px 8px; margin:4px 0; display:none;}
+  .unlock-tip.on{display:inline-block;}
   .st-happy{animation:bounce .9s ease-in-out infinite;}
   .st-normal{animation:sway 2.4s ease-in-out infinite;}
   .st-sad{animation:shake 1.6s ease-in-out infinite;}
@@ -359,7 +362,17 @@
     img.src = imgFor(type, m);
     img.className = "pet-img st-"+m;
     $("petName").textContent = p.name;
-    $("petLv").textContent = "Lv."+levelOf(p);
+    var newLv = levelOf(p);
+    $("petLv").textContent = "Lv."+newLv;
+    // 升级奖励：每级解锁一个新动作/装饰
+    var unlocks = {1:"摸头互动",2:"🛏 睡觉",3:"🎉 庆祝动作",4:"💃 跳舞",5:"✨ 闪光特效",6:"🎁 礼物盒",7:"🌈 彩虹光环",8:"🎵 唱歌",9:"💎 钻石装饰",10:"👑 皇冠+专属背景"};
+    var unlockEl = $("unlockTip");
+    if(unlocks[newLv]){
+      unlockEl.textContent = "🎉 Lv."+newLv+" 解锁："+unlocks[newLv];
+      unlockEl.classList.add("on");
+    } else {
+      unlockEl.classList.remove("on");
+    }
     var expPct = (p.exp%50)/50*100;
     $("expBar").style.width = expPct+"%";
     $("energyBar").style.width = Math.max(0,Math.min(100,p.energy))+"%";
