@@ -2219,9 +2219,9 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
   function renderMistakeList(host, ms) {
     var html = '<div class="mm-list">';
     ms.forEach(function (m, idx) {
-      var unit = unitById(m.unitId);
-      var q = findQuestion(m.qid, unit);
-      if (!q) return;
+      var found = findQuestionGlobal(m.qid);
+      if (!found) return;
+      var unit = found.unit, q = found.q;
       var voiceBtn = (q.audio) ? '<button type="button" class="speak-btn mm-voice" data-i="' + idx + '">🔊 读一听</button>' : '';
       html += '<div class="mm-card" data-qid="' + esc(m.qid) + '">' +
         '<div class="mm-meta"><span class="tag">' + esc(unit ? unit.unit : m.unitId) + '</span>' +
@@ -2261,15 +2261,28 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
     return all.filter(function (q) { return q.id === qid; })[0] || null;
   }
 
-  function redoOne(qid) {
-    var found = null, fu = null;
-    for (var i = 0; i < BOOK.units.length; i++) {
-      var q = findQuestion(qid, BOOK.units[i]);
-      if (q) { found = q; fu = BOOK.units[i]; break; }
+  // 跨学科/跨册查找题目（错题本用：错题可能来自任意学科任意册，不能只查当前 BOOK）
+  function findQuestionGlobal(qid) {
+    var subs = window.LEARNING_BOOK.platform.subjects || [];
+    for (var s = 0; s < subs.length; s++) {
+      var vols = subs[s].volumes || {};
+      for (var vn in vols) {
+        var units = (vols[vn] || {}).units || [];
+        for (var u = 0; u < units.length; u++) {
+          var q = findQuestion(qid, units[u]);
+          if (q) return { q: q, unit: units[u] };
+        }
+      }
     }
+    return null;
+  }
+
+  function redoOne(qid) {
+    var found = findQuestionGlobal(qid);
     if (!found) return;
+    var q = found.q, fu = found.unit;
     var host = document.getElementById("mmBody");
-    startQuiz(host, [found], { unitId: fu.unit_id, module: "错题本", level: null, title: "错题重做" });
+    startQuiz(host, [q], { unitId: fu.unit_id, module: "错题本", level: null, title: "错题重做" });
     setTimeout(function () {
       var back = document.getElementById("backBtn");
       if (back) back.addEventListener("click", function () { renderMistakes(); updateMistakeCount(); });
