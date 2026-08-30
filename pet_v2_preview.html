@@ -47,6 +47,21 @@
   @keyframes rewardFloat{0%{opacity:0;transform:translateX(-50%) translateY(15px) scale(0.7);}20%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.2);}80%{opacity:1;transform:translateX(-50%) translateY(-30px) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(-60px) scale(0.95);}}
   .bar-fill-flash{animation:barFlash 0.5s ease-in-out 3;}
   @keyframes barFlash{0%,100%{transform:scaleX(1);}50%{transform:scaleX(1.04);filter:brightness(1.3);}}
+  /* 奖励大模态卡 */
+  .reward-modal{position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; display:none; align-items:center; justify-content:center; padding:20px;}
+  .reward-modal.on{display:flex; animation:fadeIn .3s ease-out;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .reward-card{background:linear-gradient(135deg, #fff5e6 0%, #ffe8d6 100%); border:3px solid #ff9f43; border-radius:24px; padding:24px 28px; max-width:340px; width:100%; text-align:center; box-shadow:0 12px 40px rgba(255,159,67,0.4); animation:popIn .4s cubic-bezier(0.34, 1.56, 0.64, 1);}
+  @keyframes popIn{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .reward-icon{font-size:64px; margin-bottom:8px; animation:bounceIn .6s ease-out;}
+  @keyframes bounceIn{0%{transform:scale(0);}50%{transform:scale(1.2);}100%{transform:scale(1);}}
+  .reward-title{font-size:22px; color:#c0392b; margin:0 0 12px; font-weight:800;}
+  .reward-detail{font-size:18px; color:#2c3e50; line-height:1.8; margin:12px 0; background:rgba(255,255,255,0.6); border-radius:12px; padding:12px;}
+  .reward-detail b{color:#e67e22; font-size:22px;}
+  .reward-upgrade{font-size:15px; color:#7d4b00; background:linear-gradient(90deg, #fff7d6 0%, #ffe89e 100%); border-radius:10px; padding:8px 12px; margin:10px 0; font-weight:700; display:none;}
+  .reward-upgrade.on{display:block; animation:bounceIn .5s ease-out;}
+  .reward-close{margin-top:14px; padding:10px 28px; background:linear-gradient(135deg, #ff9f43 0%, #ff7a33 100%); color:#fff; border:none; border-radius:20px; font-size:16px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(255,122,51,0.4);}
+  .reward-close:active{transform:scale(0.96);}
   .st-happy{animation:bounce .9s ease-in-out infinite;}
   .st-normal{animation:sway 2.4s ease-in-out infinite;}
   .st-sad{animation:shake 1.6s ease-in-out infinite;}
@@ -206,6 +221,17 @@
   </div>
 </div>
 
+<!-- 学习奖励大模态卡（停留 6 秒或手动关） -->
+<div class="reward-modal" id="rewardModal">
+  <div class="reward-card">
+    <div class="reward-icon">🎁</div>
+    <h2 class="reward-title" id="rewardTitle">学习成果到账！</h2>
+    <div class="reward-detail" id="rewardDetail"></div>
+    <div class="reward-upgrade" id="rewardUpgrade"></div>
+    <button class="reward-close" id="rewardClose">知道啦 (6)</button>
+  </div>
+</div>
+
 <div class="wrap" id="mainWrap" style="display:none;">
   <div class="topbar">
     <h1>🐾 我的宠物小屋</h1>
@@ -232,10 +258,8 @@
     <button class="btn feed" id="btnFeed">🍎 喂食</button>
     <button class="btn sleep" id="btnSleep">😴 睡觉</button>
     <button class="btn study wide" id="btnStudy">📚 去主学习台做题（拿经验+食物）</button>
-    <button class="btn exercise wide" id="btnExercise">🏃 去主学习台运动（拿经验）</button>
     <button class="btn ghost" id="btnSwitch">🔄 换一只（50🪙）</button>
   </div>
-  <div class="empty-tip">下面两个按钮是给“学习台”联动演示用的；真实学习台里每次学习/运动都会自动给宠物加经验与食物。</div>
 </div>
 
 <!-- 浮动按钮 -->
@@ -673,17 +697,22 @@
           }
         }
         checkUnlock(p);
-        // 喂一次最爱食物，宠物立刻开心
-        var favFood = Object.keys(FOODS).filter(function(k){ return FOODS[k].fav.indexOf(p.type)>=0; })[0];
-        if(favFood && (S.food[favFood]||0) > 0){ feed(favFood); }
-        save();
         var foodList = Object.keys(foodGot).map(function(k){ return FOODS[k].e + "x" + foodGot[k]; }).join(" ");
-        toast("🎉 做题奖励到账！+"+(n*20)+"经验 +"+(n*10)+"🪙 +" + foodList + " → 已喂给"+p.name+"！");
+        var expGot = n*20, coinGot = n*10;
+        // 喂一次最爱食物
+        var favFood = Object.keys(FOODS).filter(function(k){ return FOODS[k].fav.indexOf(p.type)>=0; })[0];
+        var fedMsg = "";
+        if(favFood && (S.food[favFood]||0) > 0){ feed(favFood); fedMsg = "<br>已喂给 " + p.name + " 一次最爱食物！"; }
+        save();
         // 让宠物表演 happy2 庆祝
         p.react = "happy2"; p.reactUntil = now() + 3000;
         burst("🌟", 6);
-        // 飘字反馈（最直观）
-        showRewardFloat("+"+(n*20)+"经验  +"+(n*10)+"🪙  +"+foodList);
+        // 飘字反馈
+        showRewardFloat("+" + expGot + "经验  +" + coinGot + "🪙  +" + foodList);
+        // 弹大模态卡（停留 6 秒，醒目）
+        showRewardModal(expGot, coinGot, foodList, fedMsg, p);
+        // 短暂 toast 也保留（兜底）
+        toast("🎉 做题奖励到账！+" + expGot + "经验 +" + coinGot + "🪙");
         localStorage.removeItem("pet_study_pending");
       }
     }catch(e){}
@@ -698,6 +727,40 @@
     el.textContent = text;
     wrap.appendChild(el);
     setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2100);
+  }
+
+  // 奖励大模态卡（6 秒自动关 / 手动点知道啦）
+  function showRewardModal(expGot, coinGot, foodList, fedMsg, p){
+    var modal = $("rewardModal");
+    if(!modal) return;
+    $("rewardTitle").textContent = "🎉 " + p.name + " 收到学习奖励！";
+    $("rewardDetail").innerHTML = "经验 +<b>" + expGot + "</b><br>金币 +<b>" + coinGot + "</b> 🪙<br>食物 +<b>" + foodList + "</b>" + (fedMsg || "");
+    // 升级提示
+    var upgEl = $("rewardUpgrade");
+    var newLv = levelOf(p);
+    var unlocks = {1:"摸头互动",2:"🛏 睡觉",3:"🎉 庆祝动作",4:"💃 跳舞",5:"✨ 闪光特效",6:"🎁 礼物盒",7:"🌈 彩虹光环",8:"🎵 唱歌",9:"💎 钻石装饰",10:"👑 皇冠+专属背景"};
+    if(unlocks[newLv]){
+      upgEl.textContent = "🎊 升级到 Lv." + newLv + "，解锁：" + unlocks[newLv];
+      upgEl.classList.add("on");
+    } else {
+      upgEl.classList.remove("on");
+    }
+    var btn = $("rewardClose");
+    var left = 6;
+    btn.textContent = "知道啦 (" + left + ")";
+    modal.classList.add("on");
+    var timer = setInterval(function(){
+      left--;
+      btn.textContent = left > 0 ? "知道啦 (" + left + ")" : "知道啦";
+      if(left <= 0) clearInterval(timer);
+    }, 1000);
+    var close = function(){
+      clearInterval(timer);
+      modal.classList.remove("on");
+    };
+    btn.onclick = close;
+    // 6 秒后自动关
+    setTimeout(close, 6000);
   }
 
   // 睡觉状态若已超时（如刷新前点了睡觉），自动醒来，避免卡在闭眼
@@ -738,7 +801,6 @@
   $("btnSleep").onclick=sleepNow;
   $("btnFeed").onclick=openFeed;
   $("btnStudy").onclick=function(){ try{ parent.navigate({page:/subject/}); }catch(e){ top.location.href="index.html"; } };
-  $("btnExercise").onclick=function(){ try{ parent.navigate({page:/subject/}); }catch(e){ top.location.href="index.html"; } };
   $("btnSwitch").onclick=openSwitch;
   $("feedCancel").onclick=function(){$("feedMask").classList.remove("on");};
   $("switchCancel").onclick=function(){$("switchMask").classList.remove("on");};

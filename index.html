@@ -308,6 +308,13 @@ h2 { margin: 0 0 16px; font-size: 22px; }
 .unlock-no { color: var(--danger); }
 .badge-get { color: var(--accent); font-weight: 700; }
 .result-actions { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+.pet-link{display:flex; align-items:center; gap:12px; padding:14px 16px; margin:14px 0; background:linear-gradient(135deg, #fff7e6 0%, #ffe8d6 100%); border:2px solid #ffb967; border-radius:14px; box-shadow:0 4px 12px rgba(255,159,67,0.2); animation:petLinkPop 0.5s ease-out;}
+.pet-link-icon{font-size:36px; animation:bouncePet 1.2s ease-in-out infinite;}
+@keyframes bouncePet{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+@keyframes petLinkPop{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.pet-link-text{flex:1; line-height:1.5; font-size:14px; color:#2c3e50;}
+.pet-link-text b{color:#c0392b; font-size:15px;}
+.pet-link-reward{color:#e67e22; font-weight:700; font-size:14px;}
 
 /* ----------------------------- 学情看板 ----------------------------- */
 .progress-tip {
@@ -2173,8 +2180,10 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
       S.markDaily("unit_test_" + qz.ctx.unitId);
     }
     // 宠物联动展示（一目了然：完成学习→为宠物+1 食物）
-    html += '<div class="pet-link"><span>📚 本次学习已为宠物送去 <b>+1 食物</b></span>' +
-      '<button class="btn primary" id="goPetBtn" style="margin-left:8px;">🐾 去宠物小屋看看</button></div>';
+    html += '<div class="pet-link"><div class="pet-link-icon">🐾</div>' +
+      '<div class="pet-link-text"><b>本次学习已为宠物送去</b><br>' +
+      '<span class="pet-link-reward">+1 食物 · 经验↑ 心情↑</span></div>' +
+      '<button class="btn primary" id="goPetBtn" style="margin-left:auto;">🐾 去宠物小屋看看</button></div>';
     html += '<div class="result-actions"><button class="btn" id="againBtn">再做一次</button>' +
       '<button class="btn ghost" id="backBtn">返回</button></div></div>';
     host.innerHTML = html;
