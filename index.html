@@ -1209,6 +1209,7 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
         '<button class="tbtn" data-go="progress">📊 学情</button>' +
         '<button class="tbtn" data-go="mistakes">📕 错题本 <span class="badge-count" id="mcCount">0</span></button>' +
         '<button class="tbtn" data-go="pet">🐱 宠物</button>' +
+        '<button class="tbtn" id="backupBtn" title="备份/恢复学习数据">💾</button>' +
         '<button class="tbtn ghost" id="resetBtn" title="清空本地学习数据">↺</button>' +
       '</div>';
 
@@ -1221,6 +1222,16 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
         S.resetAll();
         Pet.refresh();
         render();
+      }
+    });
+    document.getElementById("backupBtn").addEventListener("click", function () {
+      var doBackup = confirm("💾 学习数据备份\n\n数据存在本机浏览器里，换设备/清缓存会丢失。\n\n点「确定」= 生成备份码（复制保存好）\n点「取消」= 恢复进度");
+      if (doBackup) {
+        var code = makeBackupCode();
+        if (code) prompt("复制下面的备份码，保存到备忘录。以后数据丢了，点 💾 选「取消」粘贴它就能恢复：", code);
+      } else {
+        var code = prompt("粘贴你保存的备份码：", "");
+        if (code) restoreFromCode(code);
       }
     });
     Array.prototype.forEach.call(topbarEl.querySelectorAll("[data-go]"), function (b) {
@@ -2308,6 +2319,25 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
     var arr = ["真棒！", "对的，就是这样！", "你越来越厉害了～", "答对啦，给你点赞！", "继续保持哦！"];
     return arr[Math.floor(Math.random() * arr.length)];
   }
+  // 数据备份/恢复（换设备/清缓存后一键还原，含宠物数据）
+  function makeBackupCode() {
+    try {
+      var lt = localStorage.getItem("LT_STATE_V1") || "";
+      var pet = localStorage.getItem("pet_v2_preview") || "";
+      return btoa(encodeURIComponent(JSON.stringify({ v: 1, lt: lt, pet: pet })));
+    } catch (e) { toast("备份失败：" + e.message); return ""; }
+  }
+  function restoreFromCode(code) {
+    try {
+      var obj = JSON.parse(decodeURIComponent(atob(code)));
+      if (!obj || obj.v !== 1) throw new Error("备份码无效");
+      if (obj.lt) localStorage.setItem("LT_STATE_V1", obj.lt);
+      if (obj.pet) localStorage.setItem("pet_v2_preview", obj.pet);
+      toast("✅ 进度已恢复，即将刷新");
+      setTimeout(function () { location.reload(); }, 1500);
+    } catch (e) { toast("❌ 恢复失败：" + e.message); }
+  }
+
   // 学习完成 → 通知新宠物系统（写共享 localStorage，宠物小屋启动时结算）
   function notifyPetStudy(n) {
     try {
