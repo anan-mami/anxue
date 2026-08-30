@@ -43,6 +43,10 @@
   .mech-tip{font-size:11px; color:#a08a78; margin:4px 0 2px; line-height:1.4;}
   .unlock-tip{font-size:11px; color:#7a4b00; background:#fff7e6; border-radius:8px; padding:4px 8px; margin:4px 0; display:none;}
   .unlock-tip.on{display:inline-block;}
+  .reward-float{position:absolute; left:50%; top:-12px; transform:translateX(-50%); font-size:20px; font-weight:800; color:#ff6b3d; text-shadow:0 2px 8px rgba(255,255,255,0.9),0 0 3px #fff; animation:rewardFloat 2s ease-out forwards; pointer-events:none; white-space:nowrap; z-index:100;}
+  @keyframes rewardFloat{0%{opacity:0;transform:translateX(-50%) translateY(15px) scale(0.7);}20%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.2);}80%{opacity:1;transform:translateX(-50%) translateY(-30px) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(-60px) scale(0.95);}}
+  .bar-fill-flash{animation:barFlash 0.5s ease-in-out 3;}
+  @keyframes barFlash{0%,100%{transform:scaleX(1);}50%{transform:scaleX(1.04);filter:brightness(1.3);}}
   .st-happy{animation:bounce .9s ease-in-out infinite;}
   .st-normal{animation:sway 2.4s ease-in-out infinite;}
   .st-sad{animation:shake 1.6s ease-in-out infinite;}
@@ -227,8 +231,8 @@
     <button class="btn play" id="btnPlay">🎾 陪玩</button>
     <button class="btn feed" id="btnFeed">🍎 喂食</button>
     <button class="btn sleep" id="btnSleep">😴 睡觉</button>
-    <button class="btn study wide" id="btnStudy">📚 模拟：完成一节学习</button>
-    <button class="btn exercise wide" id="btnExercise">🏃 模拟：运动打卡</button>
+    <button class="btn study wide" id="btnStudy">📚 去主学习台做题（拿经验+食物）</button>
+    <button class="btn exercise wide" id="btnExercise">🏃 去主学习台运动（拿经验）</button>
     <button class="btn ghost" id="btnSwitch">🔄 换一只（50🪙）</button>
   </div>
   <div class="empty-tip">下面两个按钮是给“学习台”联动演示用的；真实学习台里每次学习/运动都会自动给宠物加经验与食物。</div>
@@ -674,13 +678,26 @@
         if(favFood && (S.food[favFood]||0) > 0){ feed(favFood); }
         save();
         var foodList = Object.keys(foodGot).map(function(k){ return FOODS[k].e + "x" + foodGot[k]; }).join(" ");
-        toast("📚 学习成果到账！+"+(n*20)+"经验 +"+(n*10)+"🪙 +" + foodList + "（已喂给"+p.name+"）");
+        toast("🎉 做题奖励到账！+"+(n*20)+"经验 +"+(n*10)+"🪙 +" + foodList + " → 已喂给"+p.name+"！");
         // 让宠物表演 happy2 庆祝
         p.react = "happy2"; p.reactUntil = now() + 3000;
         burst("🌟", 6);
+        // 飘字反馈（最直观）
+        showRewardFloat("+"+(n*20)+"经验  +"+(n*10)+"🪙  +"+foodList);
         localStorage.removeItem("pet_study_pending");
       }
     }catch(e){}
+  }
+
+  // 飘字反馈：宠物头上飞起 +N 奖励
+  function showRewardFloat(text){
+    var wrap = ;
+    if(!wrap) return;
+    var el = document.createElement("div");
+    el.className = "reward-float";
+    el.textContent = text;
+    wrap.appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2100);
   }
 
   // 睡觉状态若已超时（如刷新前点了睡觉），自动醒来，避免卡在闭眼
@@ -720,8 +737,8 @@
   $("btnPlay").onclick=playNow;
   $("btnSleep").onclick=sleepNow;
   $("btnFeed").onclick=openFeed;
-  $("btnStudy").onclick=studyDone;
-  $("btnExercise").onclick=exerciseDone;
+  $("btnStudy").onclick=function(){ try{ parent.navigate({page:/subject/}); }catch(e){ top.location.href="index.html"; } };
+  $("btnExercise").onclick=function(){ try{ parent.navigate({page:/subject/}); }catch(e){ top.location.href="index.html"; } };
   $("btnSwitch").onclick=openSwitch;
   $("feedCancel").onclick=function(){$("feedMask").classList.remove("on");};
   $("switchCancel").onclick=function(){$("switchMask").classList.remove("on");};
@@ -731,6 +748,13 @@
   document.addEventListener("mousemove", function(e){ trackGaze(e); });
   document.addEventListener("touchmove", function(e){ if(e.touches[0]) trackGaze(e.touches[0]); }, {passive:true});
   document.addEventListener("mouseleave", resetGaze);
+
+  // ====== 实时监听主学习台写入 pet_study_pending → 立即结算+反馈 ======
+  window.addEventListener('storage', function(e){
+    if(e.key === 'pet_study_pending' && e.newValue){
+      settlePendingStudy();
+    }
+  });
 
   // ====== 启动 ======
   if(S.current && S.pets[S.current]){ enterApp(); }
