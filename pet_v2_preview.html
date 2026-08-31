@@ -41,6 +41,7 @@
     color:#b09a88; opacity:0; transition:opacity .4s; pointer-events:none; white-space:nowrap;}
   .pet-tip.on{opacity:1;}
     .mech-tip{font-size:13px; color:#a06a00; background:#fff7e6; border:1px dashed #ffb967; border-radius:8px; padding:6px 10px; margin:6px 0 4px; line-height:1.5; font-weight:700;}
+  .pet-stats{font-size:12px; color:#a08a78; margin-top:2px; font-weight:600; letter-spacing:0.5px;}
   .btn.dress{background:linear-gradient(135deg,#f472b6,#ec4899); color:#fff;}
   .dress-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px;}
   .dress-item{border:3px solid #eee; border-radius:16px; padding:14px 6px; text-align:center; cursor:pointer; transition:.15s; background:#fff;}
@@ -97,7 +98,10 @@
   @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.16)}100%{transform:scale(1)}}
 
   /* 装饰 */
-  .decor{position:absolute; top:18px; left:50%; transform:translateX(-50%); font-size:40px;
+  .decor{position:absolute; top:-22px; left:50%; transform:translateX(-50%); font-size:80px; z-index:99;
+    filter:drop-shadow(0 4px 8px rgba(0,0,0,0.25)); animation:decorPopIn 0.5s cubic-bezier(0.34,1.56,0.64,1); pointer-events:none;}
+  @keyframes decorPopIn{from{transform:translateX(-50%) scale(0) rotate(-30deg);opacity:0;}to{transform:translateX(-50%) scale(1) rotate(0);opacity:1;}}
+  .decor span{display:inline-block; margin:0 2px;}
     pointer-events:none; filter:drop-shadow(0 3px 4px rgba(0,0,0,.15));}
 
   /* 粒子特效（撒花/星星/爱心） */
@@ -267,8 +271,9 @@
     <div class="bubble" id="bubble">你好呀～</div>
     <div class="pet-wrap" id="petWrap"><img class="pet-img st-normal" id="petImg" src="" alt="pet"></div>
     <div class="pet-tip" id="petTip">👆 点头/肚子/脚试试</div>
-    <div class="nameplate"><span id="petName">--</span><small id="petLv">Lv.1</small></div>
-    <div class="mech-tip">✨ 玩法：📚 做题 → 得食物和经验 → 🍎 喂宠物 → 升级解锁 🎀 装扮</div>
+    <div class="nameplate"><span id="petName">--</span></div>
+    <div class="pet-stats"><span id="petStats">已答 0 题 · 解锁 0 个装扮</span></div>
+    <div class="mech-tip">✨ 玩法：📚 做题 → 得食物和经验 → 🍎 喂宠物 → <b>答对 10 题解锁帽子、20 题围巾、30 题球</b>！</div>
     <div class="bars">
       <div class="bar-row"><span class="lab">经验</span><span class="bar exp"><i id="expBar" style="width:0%"></i></span></div>
       <div class="bar-row"><span class="lab">活力</span><span class="bar energy"><i id="energyBar" style="width:100%"></i></span></div>
@@ -372,7 +377,7 @@
   function rnd(a){return a[Math.floor(Math.random()*a.length)];}
 
   function defaultState(){
-    return {pets:{}, current:null, coins:0,
+    return {pets:{}, current:null, coins:0, doneCount:0,
       food:{banana:0,bone:0,apple:0}, decor:{hat:false,scarf:false,ball:false}, equipped:[]};
   }
   var S = load();
@@ -442,8 +447,9 @@
     img.src = imgFor(type, m);
     img.className = "pet-img st-"+m;
     $("petName").textContent = p.name;
-    var newLv = levelOf(p);
-    $("petLv").textContent = "Lv."+newLv;
+    // 不再显示 Lv（Lv 没有任何奖励，纯数字会让学生困惑）
+    var unlocCount = Object.keys(S.decor).filter(function(k){return S.decor[k];}).length;
+    $("petStats").textContent = "已答 " + (S.doneCount||0) + " 题 · 解锁 " + unlocCount + " 个装扮";
     // 升级奖励：每级解锁一个新动作/装饰
     var unlocks = {1:"摸头互动",2:"🛏 睡觉",3:"🎉 庆祝动作",4:"💃 跳舞",5:"✨ 闪光特效",6:"🎁 礼物盒",7:"🌈 彩虹光环",8:"🎵 唱歌",9:"💎 钻石装饰",10:"👑 皇冠+专属背景"};
     var unlockEl = $("unlockTip");
@@ -456,11 +462,14 @@
     var mtxt={happy:"开心",normal:"正常",tired:"疲倦",sad:"委屈",sleep:"睡觉"}[m];
     tag.textContent = mtxt;
     tag.className = "mood-tag m-"+m;
-    // 装饰
+    // 装饰（显眼显示在宠物头顶）
     var dec=$("decor");
     if(S.equipped && S.equipped.length){
       dec.style.display="block";
-      dec.textContent = S.equipped.map(function(k){return DECOR_UNLOCK.filter(function(d){return d.key===k;})[0].e;}).join("");
+      dec.innerHTML = S.equipped.map(function(k){
+        var d = DECOR_UNLOCK.filter(function(x){return x.key===k;})[0];
+        return d ? '<span>'+d.e+'</span>' : '';
+      }).join("");
     } else dec.style.display="none";
     // 食物库存
     renderFood();
@@ -646,10 +655,13 @@
     burst("💪",6);
     toast("🏃 +5经验 +3🪙 活力+25");
   }
+  // 装扮按答对题数解锁：帽子 10 题、围巾 20 题、球 30 题
   function checkUnlock(p){
+    var done = S.doneCount || 0;
     var newUnlocked = [];
     DECOR_UNLOCK.forEach(function(d){
-      if(!S.decor[d.key] && p.exp>=d.exp){ S.decor[d.key]=true; newUnlocked.push(d.name); }
+      var need = d.key==="hat" ? 10 : (d.key==="scarf" ? 20 : (d.key==="ball" ? 30 : 999));
+      if(!S.decor[d.key] && done >= need){ S.decor[d.key]=true; newUnlocked.push(d.name); }
     });
     if(newUnlocked.length) toast("🎉 解锁新装扮："+newUnlocked.join("、")+"！点「🎀 装扮」穿上吧");
   }
@@ -658,13 +670,15 @@
   function openDress(){
     var p=cur(); if(!p) return;
     var grid=$("dressGrid"); grid.innerHTML="";
+    var done = S.doneCount || 0;
     DECOR_UNLOCK.forEach(function(d){
+      var need = d.key==="hat" ? 10 : (d.key==="scarf" ? 20 : (d.key==="ball" ? 30 : 999));
       var owned = !!S.decor[d.key];
       var equipping = S.equipped.indexOf(d.key) >= 0;
       var el=document.createElement("div");
       el.className = "dress-item" + (owned ? " owned" : " locked") + (equipping ? " on" : "");
-      var status = owned ? (equipping ? "已穿上" : "点我穿上") : ("经验 " + Math.min(p.exp, d.exp) + "/" + d.exp + " 解锁");
-      var lockTxt = owned ? "" : '<span class="dl">还差 ' + (d.exp - p.exp) + ' 经验</span>';
+      var status = owned ? (equipping ? "✅ 已穿上" : "👆 点我穿上") : ("答对 " + done + "/" + need + " 题解锁");
+      var lockTxt = owned ? "" : ('<span class="dl">还差 ' + (need - done) + ' 题</span>');
       el.innerHTML='<span class="di">'+d.e+'</span><span class="dn">'+d.name+'</span><span class="ds">'+status+'</span>'+lockTxt;
       if(owned){
         el.onclick=function(){ toggleEquip(d.key); };
@@ -676,8 +690,14 @@
   function toggleEquip(key){
     var p=cur(); if(!p) return;
     var idx=S.equipped.indexOf(key);
-    if(idx>=0){ S.equipped.splice(idx,1); toast("已脱下"); }
-    else { S.equipped.push(key); toast("穿上啦，看看宠物！"); }
+    if(idx>=0){ S.equipped.splice(idx,1); toast("已脱下，看看你宠物吧～"); }
+    else {
+      S.equipped.push(key);
+      toast("✨ 穿上啦！看宠物头顶～");
+      // 闪光提示
+      var dec = $("decor");
+      if(dec){ dec.style.transform = "translateX(-50%) scale(1.3)"; setTimeout(function(){ dec.style.transform = "translateX(-50%) scale(1)"; }, 300); }
+    }
     save(); render(); openDress();
   }
   function popImg(){ var i=$("petImg"); i.classList.remove("pop"); void i.offsetWidth; i.classList.add("pop"); }
@@ -763,7 +783,8 @@
         var halfN = n - wholeN >= 0.25 ? 1 : 0;
         var p = cur();
         var foodGot = {};
-        for(var i=0;i<wholeN + halfN;i++){
+        var totalRound = wholeN + halfN;
+        for(var i=0;i<totalRound;i++){
           p.exp += 20; S.coins += 10;  // 加大经验/金币奖励
           p.energy = Math.max(0, p.energy - 12);
           p.mood = Math.min(100, p.mood + 8);
@@ -776,6 +797,8 @@
             foodGot[rk] = (foodGot[rk]||0)+1;
           }
         }
+        // 累计答对题数
+        S.doneCount = (S.doneCount || 0) + totalRound;
         checkUnlock(p);
         var foodList = Object.keys(foodGot).map(function(k){ return FOODS[k].e + "x" + foodGot[k]; }).join(" ");
         var expGot = Math.round(wholeN + halfN) * 20, coinGot = Math.round(wholeN + halfN) * 10;
@@ -818,11 +841,18 @@
     // 升级提示
     var upgEl = $("rewardUpgrade");
     var newLv = levelOf(p);
-    // 装扮解锁进度提示（简单直白）
-    var nextDecor = null;
-    DECOR_UNLOCK.forEach(function(d){ if(!S.decor[d.key] && (!nextDecor || d.exp < nextDecor.exp)) nextDecor = d; });
+    // 装扮解锁进度提示（按答对题数）
+    var nextDecor = null, nextNeed = 0;
+    var done = S.doneCount || 0;
+    ["hat","scarf","ball"].forEach(function(k){
+      if(!S.decor[k]){
+        var need = k==="hat" ? 10 : (k==="scarf" ? 20 : 30);
+        if(!nextDecor){ nextDecor = k; nextNeed = need; }
+      }
+    });
     if(nextDecor){
-      upgEl.textContent = "🔓 经验 " + p.exp + "/" + nextDecor.exp + " 就解锁「" + nextDecor.name + "」！点「🎀 装扮」看看";
+      var dn = DECOR_UNLOCK.filter(function(d){return d.key===nextDecor;})[0].name;
+      upgEl.textContent = "🔓 还差 " + (nextNeed - done) + " 题就解锁「" + dn + "」！点「🎀 装扮」查看";
       upgEl.classList.add("on");
     } else {
       upgEl.classList.remove("on");
