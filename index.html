@@ -308,7 +308,11 @@ h2 { margin: 0 0 16px; font-size: 22px; }
 .unlock-no { color: var(--danger); }
 .badge-get { color: var(--accent); font-weight: 700; }
 .result-actions { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
-.pet-link{display:flex; align-items:center; gap:12px; padding:14px 16px; margin:14px 0; background:linear-gradient(135deg, #fff7e6 0%, #ffe8d6 100%); border:2px solid #ffb967; border-radius:14px; box-shadow:0 4px 12px rgba(255,159,67,0.2); animation:petLinkPop 0.5s ease-out;}
+.quiz-pet-tip{margin:8px 0 0; padding:8px 12px; background:#fff7e6; border:1px dashed #ffb967; border-radius:10px; font-size:13px; color:#a06a00;}
+  .quiz-pet-tip b{color:#e67e22;}
+  .quiz-pet-tip{margin:8px 0 0; padding:8px 12px; background:#fff7e6; border:1px dashed #ffb967; border-radius:10px; font-size:13px; color:#a06a00;}
+  .quiz-pet-tip b{color:#e67e22;}
+  .pet-link{display:flex; align-items:center; gap:12px; padding:14px 16px; margin:14px 0; background:linear-gradient(135deg, #fff7e6 0%, #ffe8d6 100%); border:2px solid #ffb967; border-radius:14px; box-shadow:0 4px 12px rgba(255,159,67,0.2); animation:petLinkPop 0.5s ease-out;}
 .pet-link-icon{font-size:36px; animation:bouncePet 1.2s ease-in-out infinite;}
 @keyframes bouncePet{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
 @keyframes petLinkPop{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
@@ -1703,6 +1707,8 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
     var total = qz.qs.length;
     var html = '<div class="quiz">' +
       '<div class="quiz-progress">第 ' + (qz.idx + 1) + ' / ' + total + ' 题　✅' + qz.correct + '　❌' + (qz.idx - qz.correct) + '</div>' +
+      '<div class="quiz-pet-tip">🐾 本轮做完，为你的宠物送去 <b>+2 食物</b> 和 <b>经验</b>！</div>' +
+      '<div class="quiz-pet-tip">🐾 本轮做完，为你的宠物送去 <b>+2 食物</b> 和 <b>经验</b>！</div>' +
       '<div class="q-card" id="qCard">' + questionHTML(q, qz) + '</div>' +
       '<div class="q-actions" id="qActions"></div>' +
       '<div class="q-feedback" id="qFeedback"></div>' +

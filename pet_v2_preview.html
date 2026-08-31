@@ -47,6 +47,13 @@
   @keyframes rewardFloat{0%{opacity:0;transform:translateX(-50%) translateY(15px) scale(0.7);}20%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.2);}80%{opacity:1;transform:translateX(-50%) translateY(-30px) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(-60px) scale(0.95);}}
   .bar-fill-flash{animation:barFlash 0.5s ease-in-out 3;}
   @keyframes barFlash{0%,100%{transform:scaleX(1);}50%{transform:scaleX(1.04);filter:brightness(1.3);}}
+  /* 待领奖励横幅 */
+  .pending-banner{display:flex; align-items:center; gap:10px; margin:10px 0 2px; padding:10px 14px; background:linear-gradient(90deg,#fff3d6,#ffe9b8); border:2px solid #ffb967; border-radius:12px; animation:pendingPulse 1.5s ease-in-out infinite;}
+  @keyframes pendingPulse{0%,100%{box-shadow:0 0 0 rgba(255,159,67,0);}50%{box-shadow:0 0 14px rgba(255,159,67,0.45);}}
+  .pb-icon{font-size:24px;}
+  .pb-text{flex:1; font-size:14px; color:#7a4b00; font-weight:700; line-height:1.4;}
+  .pb-btn{padding:8px 16px; background:linear-gradient(135deg,#ff9f43,#ff7a33); color:#fff; border:none; border-radius:16px; font-size:14px; font-weight:700; cursor:pointer;}
+  .pb-btn:active{transform:scale(0.96);}
   /* 奖励大模态卡 */
   .reward-modal{position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; display:none; align-items:center; justify-content:center; padding:20px;}
   .reward-modal.on{display:flex; animation:fadeIn .3s ease-out;}
@@ -237,6 +244,11 @@
     <h1>🐾 我的宠物小屋</h1>
     <div class="coins">🪙 <span id="coinNum">0</span></div>
   </div>
+  <div class="pending-banner" id="pendingBanner" style="display:none;">
+    <span class="pb-icon">📚</span>
+    <span class="pb-text" id="pendingText"></span>
+    <button class="pb-btn" id="pendingBtn">立即领取</button>
+  </div>
 
   <div class="stage">
     <div class="decor" id="decor" style="display:none;"></div>
@@ -383,6 +395,20 @@
   function render(){
     var p = cur();
     if(!p){ return; }
+    // 待领奖励横幅
+    try{
+      var pend = parseInt(localStorage.getItem("pet_study_pending") || "0", 10);
+      var ban = $("pendingBanner");
+      if(ban){
+        if(pend > 0){
+          ban.style.display="flex";
+          $("pendingText").textContent = "你完成了 " + pend + " 轮学习，有奖励待领取！";
+          $("pendingBtn").onclick = function(){ settlePendingStudy(); };
+        } else {
+          ban.style.display="none";
+        }
+      }
+    }catch(e){}
     var m = showMoodOf(p);
     var type = p.type;
     // 舞台
