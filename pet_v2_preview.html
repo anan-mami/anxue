@@ -98,8 +98,9 @@
   @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.16)}100%{transform:scale(1)}}
 
   /* 装饰 */
-  .decor{position:absolute; top:-22px; left:50%; transform:translateX(-50%); font-size:80px; z-index:99;
-    filter:drop-shadow(0 4px 8px rgba(0,0,0,0.25)); animation:decorPopIn 0.5s cubic-bezier(0.34,1.56,0.64,1); pointer-events:none;}
+  .decor{position:absolute; top:120px; left:50%; transform:translateX(-50%); font-size:74px; z-index:9999;
+    background:rgba(255,255,255,0.95); border-radius:30px; padding:4px 14px; box-shadow:0 8px 24px rgba(0,0,0,0.25);
+    animation:decorPopIn 0.5s cubic-bezier(0.34,1.56,0.64,1); pointer-events:none; white-space:nowrap; max-width:90%;}
   @keyframes decorPopIn{from{transform:translateX(-50%) scale(0) rotate(-30deg);opacity:0;}to{transform:translateX(-50%) scale(1) rotate(0);opacity:1;}}
   .decor span{display:inline-block; margin:0 2px;}
     pointer-events:none; filter:drop-shadow(0 3px 4px rgba(0,0,0,.15));}
@@ -247,18 +248,18 @@
 <!-- 学习奖励大模态卡（停留 6 秒或手动关） -->
 <div class="reward-modal" id="rewardModal">
   <div class="reward-card">
-    <div class="reward-icon">🎁</div>
-    <h2 class="reward-title" id="rewardTitle">学习成果到账！</h2>
+    <div class="reward-icon" id="rewardIcon">🍎</div>
+    <h2 class="reward-title" id="rewardTitle">做题奖励到账！</h2>
     <div class="reward-detail" id="rewardDetail"></div>
-    <div class="reward-upgrade" id="rewardUpgrade"></div>
-    <button class="reward-close" id="rewardClose">知道啦 (6)</button>
+    <button class="reward-close" id="rewardClose">收到！</button>
   </div>
 </div>
 
 <div class="wrap" id="mainWrap" style="display:none;">
   <div class="topbar">
     <h1>🐾 我的宠物小屋</h1>
-    <div class="coins">🪙 <span id="coinNum">0</span></div>
+    <div class="coins">🍎 <span id="foodNum">0</span></div>
+    
   </div>
   <div class="pending-banner" id="pendingBanner" style="display:none;">
     <span class="pb-icon">📚</span>
@@ -266,19 +267,15 @@
     <button class="pb-btn" id="pendingBtn">立即领取</button>
   </div>
 
+  <!-- 装饰独立层（浮在 stage 上方，不被 stage 内元素遮挡） -->
+  <div class="decor" id="decor" style="display:none;"></div>
   <div class="stage">
-    <div class="decor" id="decor" style="display:none;"></div>
     <div class="bubble" id="bubble">你好呀～</div>
     <div class="pet-wrap" id="petWrap"><img class="pet-img st-normal" id="petImg" src="" alt="pet"></div>
     <div class="pet-tip" id="petTip">👆 点头/肚子/脚试试</div>
     <div class="nameplate"><span id="petName">--</span></div>
-    <div class="pet-stats"><span id="petStats">已答 0 题 · 解锁 0 个装扮</span></div>
-    <div class="mech-tip">✨ 玩法：📚 做题 → 得食物和经验 → 🍎 喂宠物 → <b>答对 10 题解锁帽子、20 题围巾、30 题球</b>！</div>
-    <div class="bars">
-      <div class="bar-row"><span class="lab">经验</span><span class="bar exp"><i id="expBar" style="width:0%"></i></span></div>
-      <div class="bar-row"><span class="lab">活力</span><span class="bar energy"><i id="energyBar" style="width:100%"></i></span></div>
-      <div class="bar-row"><span class="lab">心情</span><span class="mood-tag m-normal" id="moodTag">正常</span></div>
-    </div>
+    <div class="pet-stats" id="petStats" style="display:none;"></div>
+    <div class="mech-tip">✨ 做题答对 → 得🍎 → 喂宠物 → <b>答对 10/20/30 题解锁 🎩🧣⚽</b></div>
     <div class="food-stock" id="foodStock"></div>
   </div>
 
@@ -447,17 +444,30 @@
     img.src = imgFor(type, m);
     img.className = "pet-img st-"+m;
     $("petName").textContent = p.name;
-    // 不再显示 Lv（Lv 没有任何奖励，纯数字会让学生困惑）
-    var unlocCount = Object.keys(S.decor).filter(function(k){return S.decor[k];}).length;
-    $("petStats").textContent = "已答 " + (S.doneCount||0) + " 题 · 解锁 " + unlocCount + " 个装扮";
+    // 只显示"还差 N 题解锁下一个装扮"（有未解锁才显示）
+    var done = S.doneCount || 0;
+    var nextItem = null;
+    ["hat","scarf","ball"].forEach(function(k){
+      if(!nextItem && !S.decor[k]){
+        var need = k==="hat" ? 10 : (k==="scarf" ? 20 : 30);
+        nextItem = { key:k, need:need };
+      }
+    });
+    var ps = $("petStats");
+    if(nextItem){
+      var dn = DECOR_UNLOCK.filter(function(d){return d.key===nextItem.key;})[0].name;
+      ps.textContent = "再答对 " + (nextItem.need - done) + " 题，解锁 " + DECOR_UNLOCK.filter(function(d){return d.key===nextItem.key;})[0].e + " " + dn + "！";
+      ps.style.display = "block";
+    } else {
+      ps.style.display = "none";
+    }
     // 升级奖励：每级解锁一个新动作/装饰
     var unlocks = {1:"摸头互动",2:"🛏 睡觉",3:"🎉 庆祝动作",4:"💃 跳舞",5:"✨ 闪光特效",6:"🎁 礼物盒",7:"🌈 彩虹光环",8:"🎵 唱歌",9:"💎 钻石装饰",10:"👑 皇冠+专属背景"};
     var unlockEl = $("unlockTip");
     unlockEl.classList.remove("on");
     unlockEl.textContent = "";
-    var expPct = (p.exp%50)/50*100;
-    $("expBar").style.width = expPct+"%";
-    $("energyBar").style.width = Math.max(0,Math.min(100,p.energy))+"%";
+    var expBar = $("expBar"); if(expBar) expBar.style.width = "0%";
+    var energyBar = $("energyBar"); if(energyBar) energyBar.style.width = Math.max(0,Math.min(100,p.energy))+"%";
     var tag = $("moodTag");
     var mtxt={happy:"开心",normal:"正常",tired:"疲倦",sad:"委屈",sleep:"睡觉"}[m];
     tag.textContent = mtxt;
@@ -481,6 +491,10 @@
     $("fabName").textContent = p.name;
     $("fabBubble").textContent = rnd(BUBBLES[bm]);
     $("fab").classList.toggle("sad", m==="sad");
+    // 顶部食物总数
+    var foodTotal = 0;
+    Object.keys(S.food).forEach(function(k){ foodTotal += (S.food[k]||0); });
+    var fn = $("foodNum"); if(fn) fn.textContent = foodTotal;
     $("coinNum").textContent = S.coins;
   }
 
@@ -774,51 +788,40 @@
   }
 
   // 结算主学习台学习成果（共享 localStorage：pet_study_pending 累加次数）
+  var _settling = false;
   function settlePendingStudy(){
     try{
+      if(_settling) return;            // 防重入：同一时间只结算一次
       var n = parseFloat(localStorage.getItem("pet_study_pending") || "0");
-      if(n > 0 && cur()){
-        // 每 0.5 一份（半份也算一题奖励）
-        var wholeN = Math.floor(n);
-        var halfN = n - wholeN >= 0.25 ? 1 : 0;
-        var p = cur();
-        var foodGot = {};
-        var totalRound = wholeN + halfN;
-        for(var i=0;i<totalRound;i++){
-          p.exp += 20; S.coins += 10;  // 加大经验/金币奖励
-          p.energy = Math.max(0, p.energy - 12);
-          p.mood = Math.min(100, p.mood + 8);
-          p.lastSeen = now();
-          // 每次结算给当前宠物爱吃的 2 份食物
-          for(var j=0;j<2;j++){
-            var rewards = Object.keys(FOODS).filter(function(k){ return FOODS[k].fav.indexOf(p.type)>=0; });
-            var rk = rewards[Math.floor(Math.random()*rewards.length)];
-            S.food[rk] = (S.food[rk]||0)+1;
-            foodGot[rk] = (foodGot[rk]||0)+1;
-          }
-        }
-        // 累计答对题数
-        S.doneCount = (S.doneCount || 0) + totalRound;
-        checkUnlock(p);
-        var foodList = Object.keys(foodGot).map(function(k){ return FOODS[k].e + "x" + foodGot[k]; }).join(" ");
-        var expGot = Math.round(wholeN + halfN) * 20, coinGot = Math.round(wholeN + halfN) * 10;
-        // 喂一次最爱食物
-        var favFood = Object.keys(FOODS).filter(function(k){ return FOODS[k].fav.indexOf(p.type)>=0; })[0];
-        var fedMsg = "";
-        if(favFood && (S.food[favFood]||0) > 0){ feed(favFood); fedMsg = "<br>已喂给 " + p.name + " 一次最爱食物！"; }
-        save();
-        // 让宠物表演 happy2 庆祝
-        p.react = "happy2"; p.reactUntil = now() + 3000;
-        burst("🌟", 6);
-        // 飘字反馈
-        showRewardFloat("+" + expGot + "经验  +" + coinGot + "🪙  +" + foodList);
-        // 弹大模态卡（停留 6 秒，醒目）
-        showRewardModal(expGot, coinGot, foodList, fedMsg, p);
-        // 短暂 toast 也保留（兜底）
-        toast("🎉 做题奖励到账！+" + expGot + "经验 +" + coinGot + "🪙");
-        localStorage.removeItem("pet_study_pending");
+      if(!(n > 0)) return;             // 没奖励就不动作（狂点也不涨数字）
+      var p = cur(); if(!p) return;
+      _settling = true;
+      var wholeN = Math.floor(n);
+      var halfN = (n - wholeN) >= 0.25 ? 1 : 0;
+      var totalRound = wholeN + halfN;
+      var foodGot = {};
+      for(var i=0;i<totalRound;i++){
+        p.energy = Math.max(0, p.energy - 10);
+        p.mood = Math.min(100, p.mood + 6);
+        p.lastSeen = now();
+        var rewards = Object.keys(FOODS).filter(function(k){ return FOODS[k].fav.indexOf(p.type)>=0; });
+        var rk = rewards[Math.floor(Math.random()*rewards.length)];
+        S.food[rk] = (S.food[rk]||0)+1;
+        foodGot[rk] = (foodGot[rk]||0)+1;
       }
-    }catch(e){}
+      S.doneCount = (S.doneCount||0) + totalRound;
+      checkUnlock(p);
+      save();
+      // 宠物开心 + 撒花 + 飘字
+      p.react = "happy2"; p.reactUntil = now() + 3000;
+      burst("🌟", 6);
+      var foodList = Object.keys(foodGot).map(function(k){ return FOODS[k].e + "x" + foodGot[k]; }).join(" ");
+      showRewardFloat("做题奖励 +" + totalRound + " 🍎");
+      showRewardModal(totalRound, foodList, p);
+      toast("做题奖励到账！+" + totalRound + " 🍎");
+      localStorage.removeItem("pet_study_pending");
+      _settling = false;
+    }catch(e){ _settling = false; }
   }
 
   // 飘字反馈：宠物头上飞起 +N 奖励
@@ -833,46 +836,17 @@
   }
 
   // 奖励大模态卡（6 秒自动关 / 手动点知道啦）
-  function showRewardModal(expGot, coinGot, foodList, fedMsg, p){
+  function showRewardModal(totalRound, foodList, p){
     var modal = $("rewardModal");
     if(!modal) return;
-    $("rewardTitle").textContent = "🎉 " + p.name + " 收到学习奖励！";
-    $("rewardDetail").innerHTML = "经验 +<b>" + expGot + "</b><br>金币 +<b>" + coinGot + "</b> 🪙<br>食物 +<b>" + foodList + "</b>" + (fedMsg || "");
-    // 升级提示
-    var upgEl = $("rewardUpgrade");
-    var newLv = levelOf(p);
-    // 装扮解锁进度提示（按答对题数）
-    var nextDecor = null, nextNeed = 0;
-    var done = S.doneCount || 0;
-    ["hat","scarf","ball"].forEach(function(k){
-      if(!S.decor[k]){
-        var need = k==="hat" ? 10 : (k==="scarf" ? 20 : 30);
-        if(!nextDecor){ nextDecor = k; nextNeed = need; }
-      }
-    });
-    if(nextDecor){
-      var dn = DECOR_UNLOCK.filter(function(d){return d.key===nextDecor;})[0].name;
-      upgEl.textContent = "🔓 还差 " + (nextNeed - done) + " 题就解锁「" + dn + "」！点「🎀 装扮」查看";
-      upgEl.classList.add("on");
-    } else {
-      upgEl.classList.remove("on");
-    }
+    $("rewardIcon").textContent = foodList || "🍎";
+    $("rewardTitle").textContent = "🎉 做题奖励到账！";
+    $("rewardDetail").innerHTML = "宠物收到 <b>" + totalRound + " 份食物</b><br><span style=\"font-size:13px;color:#a08a78;\">点🍎喂给它，它会开心～</span>";
     var btn = $("rewardClose");
-    var left = 6;
-    btn.textContent = "知道啦 (" + left + ")";
     modal.classList.add("on");
-    var timer = setInterval(function(){
-      left--;
-      btn.textContent = left > 0 ? "知道啦 (" + left + ")" : "知道啦";
-      if(left <= 0) clearInterval(timer);
-    }, 1000);
-    var close = function(){
-      clearInterval(timer);
-      modal.classList.remove("on");
-    };
+    var close = function(){ modal.classList.remove("on"); };
     btn.onclick = close;
-    // 6 秒后自动关
-    setTimeout(close, 6000);
+    setTimeout(close, 4000);
   }
 
   // 睡觉状态若已超时（如刷新前点了睡觉），自动醒来，避免卡在闭眼
