@@ -2115,8 +2115,14 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
   }
 
   function afterAnswer(correct, q, qz, host, userAns) {
-    // 答完一题立即给宠物攒奖励（只有答对才有 🍎）
-    if(correct) notifyPetStudy(1);
+    // 答对 → 每天只给 1 份食物（防积累；第二天再答对再给 1 份）
+    if(correct){
+      var todayStr = new Date().toDateString();
+      if(localStorage.getItem("pet_food_date") !== todayStr){
+        localStorage.setItem("pet_food_date", todayStr);
+        notifyPetStudy(1);
+      }
+    }
     S.recordAttempt(q.id, qz.ctx.unitId, qz.ctx.module, qz.ctx.level, userAns != null ? userAns : (correct ? "对" : "错"), correct);
     var feedback = host.querySelector("#qFeedback");
     var fbVoice = (q.audio) ? ' <button type="button" class="speak-btn q-voice-fb">🔊 读解析</button>' : '';

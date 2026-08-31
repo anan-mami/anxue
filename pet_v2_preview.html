@@ -98,9 +98,10 @@
   @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.16)}100%{transform:scale(1)}}
 
   /* 装饰 */
-  .decor{position:absolute; top:170px; left:50%; transform:translateX(-50%); font-size:74px; z-index:9999;
-    background:rgba(255,255,255,0.95); border-radius:30px; padding:4px 14px; box-shadow:0 8px 24px rgba(0,0,0,0.25);
-    animation:decorPopIn 0.5s cubic-bezier(0.34,1.56,0.64,1); pointer-events:none; white-space:nowrap; max-width:90%;}
+  .pet-wrap{position:relative; display:inline-block;}
+  .decor{position:absolute; top:-36px; left:50%; transform:translateX(-50%); font-size:56px; z-index:99;
+    background:rgba(255,255,255,0.96); border-radius:24px; padding:2px 12px; box-shadow:0 6px 18px rgba(0,0,0,0.2);
+    animation:decorPopIn 0.5s cubic-bezier(0.34,1.56,0.64,1); pointer-events:none; white-space:nowrap;}
   @keyframes decorPopIn{from{transform:translateX(-50%) scale(0) rotate(-30deg);opacity:0;}to{transform:translateX(-50%) scale(1) rotate(0);opacity:1;}}
   .decor span{display:inline-block; margin:0 2px;}
     pointer-events:none; filter:drop-shadow(0 3px 4px rgba(0,0,0,.15));}
@@ -267,11 +268,9 @@
     <button class="pb-btn" id="pendingBtn">立即领取</button>
   </div>
 
-  <!-- 装饰独立层（浮在 stage 上方，不被 stage 内元素遮挡） -->
-  <div class="decor" id="decor" style="display:none;"></div>
   <div class="stage">
     <div class="bubble" id="bubble">你好呀～</div>
-    <div class="pet-wrap" id="petWrap"><img class="pet-img st-normal" id="petImg" src="" alt="pet"></div>
+    <div class="pet-wrap" id="petWrap"><div class="decor" id="decor" style="display:none;"></div><img class="pet-img st-normal" id="petImg" src="" alt="pet"></div>
     <div class="pet-tip" id="petTip">👆 点头/肚子/脚试试</div>
     <div class="nameplate"><span id="petName">--</span></div>
     <div class="pet-stats" id="petStats" style="display:none;"></div>
@@ -374,7 +373,7 @@
   function rnd(a){return a[Math.floor(Math.random()*a.length)];}
 
   function defaultState(){
-    return {pets:{}, current:null, coins:0, doneCount:0,
+    return {pets:{}, current:null, coins:0, doneCount:0, lastFeedDate:null,
       food:{banana:0,bone:0,apple:0}, decor:{hat:false,scarf:false,ball:false}, equipped:[]};
   }
   var S = load();
@@ -488,9 +487,18 @@
     } else dec.style.display="none";
     // 食物库存
     renderFood();
-    // 气泡
-    var bm = (p.react && now()<p.reactUntil && p.react!=="sleep") ? "happy" : m;
-    setBubble(rnd(BUBBLES[bm]));
+    // 宠物饿提示：今天没喂过 + 食物不足 → 催促做题
+    var todayStr = new Date().toDateString();
+    var fedToday = S.lastFeedDate === todayStr;
+    var hasFood = Object.keys(S.food).some(function(k){ return (S.food[k]||0) > 0; });
+    if(!fedToday && !hasFood){
+      setBubble("😋 好饿啊，去做题拿食物吧！");
+    } else if(!fedToday && hasFood){
+      setBubble("🍎 今天还没吃饭，喂我一下吧～");
+    } else {
+      var bm2 = (p.react && now()<p.reactUntil && p.react!=="sleep") ? "happy" : m;
+      setBubble(rnd(BUBBLES[bm2]));
+    }
     // 浮动
     $("fabImg").src = imgFor(type, m);
     $("fabName").textContent = p.name;
@@ -643,13 +651,16 @@
     var p=cur(); if(!p) return;
     if((S.food[type]||0)<=0){ toast("没有"+FOODS[type].name+"了，去学习赚奖励吧～"); return; }
     S.food[type]--;
+    S.lastFeedDate = new Date().toDateString();  // 今天喂过了
     var fav = FOODS[type].fav.indexOf(p.type)>=0;
     p.mood=Math.min(100, p.mood + (fav?20:8));
     p.energy=Math.min(100, p.energy+ (fav?6:3));
     p.lastSeen=now();
     if(fav){ p.react="happy2"; p.reactUntil=now()+2800; }
     else { p.react="happy"; p.reactUntil=now()+2500; }
-    render(); save();
+    save(); render();
+    // 喂食面板开着 → 立即刷新数量（即时反馈）
+    if($("feedMask").classList.contains("on")){ openFeed(); }
     if(fav){ burst(FOODS[type].e,6); setBubble("最爱吃"+FOODS[type].name+"啦！"); }
   }
   function studyDone(){
@@ -803,7 +814,7 @@
       _settling = true;
       var wholeN = Math.floor(n);
       var halfN = (n - wholeN) >= 0.25 ? 1 : 0;
-      var totalRound = wholeN + halfN;
+      var totalRound = Math.min(wholeN + halfN, 3);  // 保险：最多 3 份（每天机制在 index 侧控制）
       var foodGot = {};
       var skipped = 0;
       // 每种食物上限 20（防止食物爆量，孩子不缺吃的就没动力）
@@ -887,7 +898,7 @@
       var el=document.createElement("div");
       el.className="food-opt"+(n<=0?" dis":"");
       el.innerHTML='<div class="e">'+FOODS[k].e+'</div><div>'+FOODS[k].name+'</div><div>x'+n+'</div>';
-      el.onclick=function(){ if(n>0){ feed(k); $("feedMask").classList.remove("on"); } };
+      el.onclick=function(){ if((S.food[k]||0)>0){ feed(k); } else { toast("没有"+FOODS[k].name+"了，去做题吧～"); } };
       g.appendChild(el);
     });
     $("feedMask").onclick=function(e){ if(e.target===this) $("feedMask").classList.remove("on"); };
