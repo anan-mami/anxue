@@ -40,7 +40,19 @@
   .pet-tip{position:absolute; left:50%; transform:translateX(-50%); bottom:6px; font-size:11px;
     color:#b09a88; opacity:0; transition:opacity .4s; pointer-events:none; white-space:nowrap;}
   .pet-tip.on{opacity:1;}
-  .mech-tip{font-size:11px; color:#a08a78; margin:4px 0 2px; line-height:1.4;}
+    .mech-tip{font-size:13px; color:#a06a00; background:#fff7e6; border:1px dashed #ffb967; border-radius:8px; padding:6px 10px; margin:6px 0 4px; line-height:1.5; font-weight:700;}
+  .btn.dress{background:linear-gradient(135deg,#f472b6,#ec4899); color:#fff;}
+  .dress-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px;}
+  .dress-item{border:3px solid #eee; border-radius:16px; padding:14px 6px; text-align:center; cursor:pointer; transition:.15s; background:#fff;}
+  .dress-item .di{font-size:44px; display:block; margin-bottom:6px;}
+  .dress-item .dn{font-size:14px; font-weight:700; color:#2c3e50;}
+  .dress-item .ds{font-size:11px; color:#8a9bab; margin-top:4px; min-height:14px;}
+  .dress-item.owned{background:#fff7e6;}
+  .dress-item.owned:not(.locked):hover{transform:scale(1.05);}
+  .dress-item.on{border-color:#ff9f43; background:#fff3d6; box-shadow:0 4px 14px rgba(255,159,67,.35);}
+  .dress-item.locked{opacity:.55; border-style:dashed; cursor:default;}
+  .dress-item .dl{font-size:12px; color:#e67e22; font-weight:700; margin-top:4px;}
+  .sheet-sub{font-size:13px; color:#a08a78; margin:4px 0 0; line-height:1.5;}
   .unlock-tip{font-size:11px; color:#7a4b00; background:#fff7e6; border-radius:8px; padding:4px 8px; margin:4px 0; display:none;}
   .unlock-tip.on{display:inline-block;}
   .reward-float{position:absolute; left:50%; top:-12px; transform:translateX(-50%); font-size:20px; font-weight:800; color:#ff6b3d; text-shadow:0 2px 8px rgba(255,255,255,0.9),0 0 3px #fff; animation:rewardFloat 2s ease-out forwards; pointer-events:none; white-space:nowrap; z-index:100;}
@@ -256,6 +268,7 @@
     <div class="pet-wrap" id="petWrap"><img class="pet-img st-normal" id="petImg" src="" alt="pet"></div>
     <div class="pet-tip" id="petTip">👆 点头/肚子/脚试试</div>
     <div class="nameplate"><span id="petName">--</span><small id="petLv">Lv.1</small></div>
+    <div class="mech-tip">✨ 玩法：📚 做题 → 得食物和经验 → 🍎 喂宠物 → 升级解锁 🎀 装扮</div>
     <div class="bars">
       <div class="bar-row"><span class="lab">经验</span><span class="bar exp"><i id="expBar" style="width:0%"></i></span></div>
       <div class="bar-row"><span class="lab">活力</span><span class="bar energy"><i id="energyBar" style="width:100%"></i></span></div>
@@ -269,6 +282,7 @@
     <button class="btn play" id="btnPlay">🎾 陪玩</button>
     <button class="btn feed" id="btnFeed">🍎 喂食</button>
     <button class="btn sleep" id="btnSleep">😴 睡觉</button>
+    <button class="btn dress" id="btnDress">🎀 装扮</button>
     <button class="btn study wide" id="btnStudy">📚 去主学习台做题（拿经验+食物）</button>
     <button class="btn ghost" id="btnSwitch">🔄 换一只（50🪙）</button>
   </div>
@@ -293,6 +307,18 @@
 </div>
 
 <!-- 换宠面板 -->
+<!-- 装扮面板 -->
+<div class="sheet-mask" id="dressMask">
+  <div class="sheet">
+    <h3>🎀 给宠物挑装扮</h3>
+    <p class="sheet-sub">做题攒经验，经验够了就解锁新装扮！点一下穿上，再点一下脱下～</p>
+    <div class="dress-grid" id="dressGrid"></div>
+    <div style="text-align:center;margin-top:14px;">
+      <button class="btn ghost" id="dressClose" style="max-width:200px;">完成</button>
+    </div>
+  </div>
+</div>
+
 <div class="switch-mask" id="switchMask">
   <div class="switch-card">
     <h3>选择要陪伴你的小伙伴</h3>
@@ -421,12 +447,8 @@
     // 升级奖励：每级解锁一个新动作/装饰
     var unlocks = {1:"摸头互动",2:"🛏 睡觉",3:"🎉 庆祝动作",4:"💃 跳舞",5:"✨ 闪光特效",6:"🎁 礼物盒",7:"🌈 彩虹光环",8:"🎵 唱歌",9:"💎 钻石装饰",10:"👑 皇冠+专属背景"};
     var unlockEl = $("unlockTip");
-    if(unlocks[newLv]){
-      unlockEl.textContent = "🎉 Lv."+newLv+" 解锁："+unlocks[newLv];
-      unlockEl.classList.add("on");
-    } else {
-      unlockEl.classList.remove("on");
-    }
+    unlockEl.classList.remove("on");
+    unlockEl.textContent = "";
     var expPct = (p.exp%50)/50*100;
     $("expBar").style.width = expPct+"%";
     $("energyBar").style.width = Math.max(0,Math.min(100,p.energy))+"%";
@@ -625,9 +647,38 @@
     toast("🏃 +5经验 +3🪙 活力+25");
   }
   function checkUnlock(p){
+    var newUnlocked = [];
     DECOR_UNLOCK.forEach(function(d){
-      if(!S.decor[d.key] && p.exp>=d.exp){ S.decor[d.key]=true; toast("🎉 解锁装饰："+d.name+"！去换宠面板装备"); }
+      if(!S.decor[d.key] && p.exp>=d.exp){ S.decor[d.key]=true; newUnlocked.push(d.name); }
     });
+    if(newUnlocked.length) toast("🎉 解锁新装扮："+newUnlocked.join("、")+"！点「🎀 装扮」穿上吧");
+  }
+
+  // ====== 装扮面板 ======
+  function openDress(){
+    var p=cur(); if(!p) return;
+    var grid=$("dressGrid"); grid.innerHTML="";
+    DECOR_UNLOCK.forEach(function(d){
+      var owned = !!S.decor[d.key];
+      var equipping = S.equipped.indexOf(d.key) >= 0;
+      var el=document.createElement("div");
+      el.className = "dress-item" + (owned ? " owned" : " locked") + (equipping ? " on" : "");
+      var status = owned ? (equipping ? "已穿上" : "点我穿上") : ("经验 " + Math.min(p.exp, d.exp) + "/" + d.exp + " 解锁");
+      var lockTxt = owned ? "" : '<span class="dl">还差 ' + (d.exp - p.exp) + ' 经验</span>';
+      el.innerHTML='<span class="di">'+d.e+'</span><span class="dn">'+d.name+'</span><span class="ds">'+status+'</span>'+lockTxt;
+      if(owned){
+        el.onclick=function(){ toggleEquip(d.key); };
+      }
+      grid.appendChild(el);
+    });
+    $("dressMask").classList.add("on");
+  }
+  function toggleEquip(key){
+    var p=cur(); if(!p) return;
+    var idx=S.equipped.indexOf(key);
+    if(idx>=0){ S.equipped.splice(idx,1); toast("已脱下"); }
+    else { S.equipped.push(key); toast("穿上啦，看看宠物！"); }
+    save(); render(); openDress();
   }
   function popImg(){ var i=$("petImg"); i.classList.remove("pop"); void i.offsetWidth; i.classList.add("pop"); }
 
@@ -767,9 +818,11 @@
     // 升级提示
     var upgEl = $("rewardUpgrade");
     var newLv = levelOf(p);
-    var unlocks = {1:"摸头互动",2:"🛏 睡觉",3:"🎉 庆祝动作",4:"💃 跳舞",5:"✨ 闪光特效",6:"🎁 礼物盒",7:"🌈 彩虹光环",8:"🎵 唱歌",9:"💎 钻石装饰",10:"👑 皇冠+专属背景"};
-    if(unlocks[newLv]){
-      upgEl.textContent = "🎊 升级到 Lv." + newLv + "，解锁：" + unlocks[newLv];
+    // 装扮解锁进度提示（简单直白）
+    var nextDecor = null;
+    DECOR_UNLOCK.forEach(function(d){ if(!S.decor[d.key] && (!nextDecor || d.exp < nextDecor.exp)) nextDecor = d; });
+    if(nextDecor){
+      upgEl.textContent = "🔓 经验 " + p.exp + "/" + nextDecor.exp + " 就解锁「" + nextDecor.name + "」！点「🎀 装扮」看看";
       upgEl.classList.add("on");
     } else {
       upgEl.classList.remove("on");
@@ -831,6 +884,8 @@
   $("btnFeed").onclick=openFeed;
   $("btnStudy").onclick=function(){ try{ parent.navigate({page:/subject/}); }catch(e){ top.location.href="index.html"; } };
   $("btnSwitch").onclick=openSwitch;
+  $("btnDress").onclick=openDress;
+  $("dressClose").onclick=function(){ $("dressMask").classList.remove("on"); };
   $("feedCancel").onclick=function(){$("feedMask").classList.remove("on");};
   $("switchCancel").onclick=function(){$("switchMask").classList.remove("on");};
   $("nbConfirm").onclick=confirmAdopt;
