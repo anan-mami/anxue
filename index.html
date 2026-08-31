@@ -308,10 +308,9 @@ h2 { margin: 0 0 16px; font-size: 22px; }
 .unlock-no { color: var(--danger); }
 .badge-get { color: var(--accent); font-weight: 700; }
 .result-actions { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
-.quiz-pet-tip{margin:8px 0 0; padding:8px 12px; background:#fff7e6; border:1px dashed #ffb967; border-radius:10px; font-size:13px; color:#a06a00;}
+.quiz-pet-tip{margin:8px 0 0; padding:8px 12px; background:#fff7e6; border:1px dashed #ffb967; border-radius:10px; font-size:13px; color:#a06a00; animation:quizPetPulse 2s ease-in-out infinite;}
   .quiz-pet-tip b{color:#e67e22;}
-  .quiz-pet-tip{margin:8px 0 0; padding:8px 12px; background:#fff7e6; border:1px dashed #ffb967; border-radius:10px; font-size:13px; color:#a06a00;}
-  .quiz-pet-tip b{color:#e67e22;}
+  @keyframes quizPetPulse{0%,100%{background:#fff7e6;}50%{background:#fff0d4;}}
   .pet-link{display:flex; align-items:center; gap:12px; padding:14px 16px; margin:14px 0; background:linear-gradient(135deg, #fff7e6 0%, #ffe8d6 100%); border:2px solid #ffb967; border-radius:14px; box-shadow:0 4px 12px rgba(255,159,67,0.2); animation:petLinkPop 0.5s ease-out;}
 .pet-link-icon{font-size:36px; animation:bouncePet 1.2s ease-in-out infinite;}
 @keyframes bouncePet{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
@@ -1707,8 +1706,7 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
     var total = qz.qs.length;
     var html = '<div class="quiz">' +
       '<div class="quiz-progress">第 ' + (qz.idx + 1) + ' / ' + total + ' 题　✅' + qz.correct + '　❌' + (qz.idx - qz.correct) + '</div>' +
-      '<div class="quiz-pet-tip">🐾 本轮做完，为你的宠物送去 <b>+2 食物</b> 和 <b>经验</b>！</div>' +
-      '<div class="quiz-pet-tip">🐾 本轮做完，为你的宠物送去 <b>+2 食物</b> 和 <b>经验</b>！</div>' +
+      '<div class="quiz-pet-tip">🐾 <b>答一题</b>，宠物就收到 <b>+1 食物</b> 和经验！做完点「看结果」有大奖 🎁</div>' +
       '<div class="q-card" id="qCard">' + questionHTML(q, qz) + '</div>' +
       '<div class="q-actions" id="qActions"></div>' +
       '<div class="q-feedback" id="qFeedback"></div>' +
@@ -2117,6 +2115,8 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
   }
 
   function afterAnswer(correct, q, qz, host, userAns) {
+    // 答完一题立即给宠物攒奖励（不依赖"看结果"按钮）
+    notifyPetStudy(correct ? 1 : 0.5);
     S.recordAttempt(q.id, qz.ctx.unitId, qz.ctx.module, qz.ctx.level, userAns != null ? userAns : (correct ? "对" : "错"), correct);
     var feedback = host.querySelector("#qFeedback");
     var fbVoice = (q.audio) ? ' <button type="button" class="speak-btn q-voice-fb">🔊 读解析</button>' : '';
@@ -2357,8 +2357,8 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
   function notifyPetStudy(n) {
     try {
       var key = "pet_study_pending";
-      var cur = parseInt(localStorage.getItem(key) || "0", 10);
-      localStorage.setItem(key, String(cur + (n || 1)));
+      var cur = parseFloat(localStorage.getItem(key) || "0");
+      localStorage.setItem(key, String(Math.round((cur + (n || 1)) * 10) / 10));
     } catch (e) {}
   }
   function greet(tick) {
