@@ -65,21 +65,22 @@ body {
   .topbar .tbtn{color:#fff; background:rgba(255,255,255,.18);}
   .topbar .tbtn:hover{background:rgba(255,255,255,.32);}
   .topbar .tbtn.ghost{background:transparent;}
-  .topbar .brand-title{color:#fff;}/* 英语卡片网格（参考图风格：单词2列卡片） */
-  .eng-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin:10px 0;}
-  .eng-card{background:linear-gradient(135deg,#fff8ee,#fffaef); border:2px solid #ffe2b8; border-radius:14px; padding:14px 10px; text-align:center; position:relative; transition:transform .15s;}
-  .eng-card:hover{transform:translateY(-2px); box-shadow:0 6px 14px rgba(255,184,74,.18);}
-  .eng-en{font-size:22px; font-weight:800; color:#2c7a4b; margin-bottom:4px; letter-spacing:1px;}
-  .eng-zh{font-size:13px; color:#8a6d3b; margin-bottom:8px;}
-  .voice-btn-circle{position:absolute; right:8px; top:8px; width:34px; height:34px; padding:0; background:var(--primary); color:#fff; border-radius:50%; font-size:16px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(78,203,113,.35); border:none; cursor:pointer;}
+  .topbar .brand-title{color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.25); font-weight:700;}
+  /* 英语卡片网格（参考图风格：单词2列卡片） */
+  .eng-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:8px 0;}
+  .eng-card{background:linear-gradient(135deg,#fff8ee,#fffaef); border:2px solid #ffe2b8; border-radius:12px; padding:10px 6px; text-align:center; position:relative; transition:transform .15s;}
+  .eng-card:hover{transform:translateY(-2px); box-shadow:0 4px 10px rgba(255,184,74,.18);}
+  .eng-en{font-size:18px; font-weight:800; color:#2c7a4b; margin-bottom:2px; letter-spacing:0.5px;}
+  .eng-zh{font-size:11px; color:#8a6d3b;}
+  .voice-btn-circle{position:absolute; right:4px; top:4px; width:26px; height:26px; padding:0; background:var(--primary); color:#fff; border-radius:50%; font-size:13px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(78,203,113,.35); border:none; cursor:pointer;}
   .voice-btn-circle:active{transform:scale(.92);}
-  .eng-sent-list{display:flex; flex-direction:column; gap:10px; margin:10px 0;}
-  .eng-sent-card{background:#fff; border:2px solid #cfe9d5; border-left:6px solid var(--primary); border-radius:12px; padding:12px 14px; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; position:relative;}
-  .eng-sent-en{font-size:17px; font-weight:700; color:#1f6e3d; line-height:1.4;}
-  .eng-sent-zh{font-size:13px; color:#6b7c93; margin-top:4px;}
+  .eng-sent-list{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin:8px 0;}
+  .eng-sent-card{background:#fff; border:2px solid #cfe9d5; border-left:5px solid var(--primary); border-radius:10px; padding:8px 10px; display:grid; grid-template-columns:1fr auto; gap:6px; align-items:center; position:relative;}
+  .eng-sent-en{font-size:14px; font-weight:700; color:#1f6e3d; line-height:1.3;}
+  .eng-sent-zh{font-size:11px; color:#6b7c93; margin-top:2px;}
   .eng-sent-card .voice-btn-circle{position:static; margin-left:auto;}
-  .eng-dialogues{margin-top:10px;}
-  .sentence { padding: 6px 0; border-bottom: 1px dashed #f0e4d8; }
+  .eng-dialogues{margin-top:8px;}
+  .sentence { padding: 4px 0; border-bottom: 1px dashed #f0e4d8; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 16px; z-index: 100;
 }
@@ -433,7 +434,7 @@ h2 { margin: 0 0 16px; font-size: 22px; }
   :root { --sidebar-w: 64px; }
   .topbar-left { flex: 0; }
   .topbar-center { font-size: 15px; }
-  .brand-title { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .brand-title { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.25); font-weight:700;
   .tbtn span { display: none; }
   .sub-name { display: none; }
   .dashboard-grid { grid-template-columns: 1fr; }
@@ -1247,7 +1248,8 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
   function renderTopbar() {
     var userName = S.state().userName || "小朋友";
     var semOpts = Object.keys(curVolumes()).map(function (s) {
-      return '<option value="' + esc(s) + '" ' + (App.view.semester === s ? "selected" : "") + '>' + esc(s) + '</option>';
+      var label = s === "上册" ? "一年级上册" : (s === "下册" ? "一年级下册" : s);
+      return '<option value="' + esc(s) + '" ' + (App.view.semester === s ? "selected" : "") + '>' + label + '</option>';
     }).join("");
     topbarEl.innerHTML =
       '<div class="topbar-left">' +

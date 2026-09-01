@@ -718,17 +718,26 @@
     $("dressMask").classList.add("on");
   }
   function toggleEquip(key){
-    var p=cur(); if(!p) return;
+    var p=cur(); if(!p) { toast("请先领养宠物"); return; }
+    var d = DECOR_UNLOCK.filter(function(x){ return x.key===key; })[0];
+    var name = d ? d.name : key;
     var idx=S.equipped.indexOf(key);
-    if(idx>=0){ S.equipped.splice(idx,1); toast("已脱下，看看你宠物吧～"); }
-    else {
+    if(idx>=0){
+      S.equipped.splice(idx,1);
+      toast("已脱下 " + (d?d.e:key) + " " + name);
+    } else {
       S.equipped.push(key);
-      toast("✨ 穿上啦！看宠物头顶～");
+      toast("✨ 穿上 " + (d?d.e:key) + " " + name + " 啦！");
       // 闪光提示
       var dec = $("decor");
-      if(dec){ dec.style.transform = "translateX(-50%) scale(1.3)"; setTimeout(function(){ dec.style.transform = "translateX(-50%) scale(1)"; }, 300); }
+      if(dec){
+        dec.style.transform = "translateX(-50%) scale(1.3)";
+        setTimeout(function(){ dec.style.transform = "translateX(-50%) scale(1)"; }, 300);
+      }
     }
-    save(); render(); openDress();
+    try{ save(); }catch(e){ toast("保存失败：" + e.message); return; }
+    render();
+    try{ openDress(); }catch(e){}
   }
   function popImg(){ var i=$("petImg"); i.classList.remove("pop"); void i.offsetWidth; i.classList.add("pop"); }
 
