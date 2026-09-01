@@ -319,7 +319,14 @@ h2 { margin: 0 0 16px; font-size: 22px; }
 .pet-link-text b{color:#c0392b; font-size:15px;}
 .pet-link-reward{color:#e67e22; font-weight:700; font-size:14px;}
 
-/* ----------------------------- 学情看板 ----------------------------- */
+/* 激活码弹窗 */
+  .lic-mask{position:fixed; inset:0; background:rgba(44,62,80,.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .lic-card{background:#fff; border-radius:20px; padding:22px; max-width:340px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,.25); animation:licPop .35s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes licPop{from{transform:scale(.7);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .lic-lock{text-align:center; padding:40px 20px; background:#fff7e6; border:2px dashed #ffb967; border-radius:16px; margin:16px 0;}
+  .lic-lock h2{margin:10px 0 6px; color:#c0392b;}
+  .lic-lock p{color:#a06a00; margin:0 0 16px; font-size:14px;}
+  /* ----------------------------- 学情看板 ----------------------------- */
 .progress-tip {
   background: #e8f8f0; color: #1e8449; padding: 10px 14px;
   border-radius: 10px; margin-bottom: 14px; font-size: 14px;
@@ -688,6 +695,21 @@ img { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
+
+<!-- 激活码弹窗 -->
+<div class="lic-mask" id="licMask" style="display:none;">
+  <div class="lic-card">
+    <div style="font-size:44px;text-align:center;">🔑</div>
+    <h2 style="text-align:center;margin:6px 0 4px;">输入激活码</h2>
+    <p style="text-align:center;color:#8a9bab;font-size:13px;margin:0 0 12px;">输入购买时获得的激活码，解锁全部学习内容</p>
+    <input id="licInput" maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off"
+      style="width:100%;padding:12px;font-size:18px;text-align:center;letter-spacing:2px;border:2px solid #d8e2ee;border-radius:10px;outline:none;box-sizing:border-box;">
+    <button class="btn primary" id="licBtn" style="width:100%;margin-top:10px;">解锁全部内容</button>
+    <div id="licMsg" style="margin-top:8px;font-size:13px;text-align:center;min-height:18px;"></div>
+    <button class="btn ghost" id="licClose" style="width:100%;margin-top:6px;">暂不激活</button>
+  </div>
+</div>
+
   <!-- 首次进入填写名字 -->
   <div id="nameModal" class="modal" style="display:none">
     <div class="modal-card">
@@ -1449,6 +1471,19 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
 
   /* ----------------------------- Subject 页（含模块导航） ----------------------------- */
   function renderSubject() {
+    // 试看锁定：LOCK_TRIAL 开启且未激活时，非第一单元显示锁
+    if (LICENSE.LOCK_TRIAL && !LICENSE.isUnlocked()) {
+      var firstUid = (BOOK.units && BOOK.units.length) ? BOOK.units[0].unit_id : null;
+      if (App.view.unitId !== firstUid) {
+        mainEl.innerHTML = '<section class="page subject"><div class="lic-lock">' +
+          '<div style="font-size:52px;">🔒</div>' +
+          '<h2>这个单元需要激活码</h2>' +
+          '<p>体验版可试看第一单元。输入激活码解锁全部内容～</p>' +
+          '<button class="btn primary" id="licOpenBtn">🔑 输入激活码</button></div></section>';
+        document.getElementById("licOpenBtn").addEventListener("click", function () { openLicModal(); });
+        return;
+      }
+    }
     var unit = unitById(App.view.unitId);
     if (!unit) { App.view.unitId = firstUnitId(); unit = unitById(App.view.unitId); }
 
@@ -2357,6 +2392,64 @@ window.AUDIO_MAP = {"m1a_math1a_theme1_kp_theme1_1_title":"assets/audio/m1a_math
       toast("✅ 进度已恢复，即将刷新");
       setTimeout(function () { location.reload(); }, 1500);
     } catch (e) { toast("❌ 恢复失败：" + e.message); }
+  }
+
+  /* ==================== 激活码解锁 ==================== */
+  var LICENSE = {
+    SEED: 'anxue-qd-g1-v1-2026',        // 必须与 0_工具链/_codegen.js 的 SEED 一致
+    LOCK_TRIAL: false,                  // 体验版默认不锁；正式收费改成 true
+    KEY: 'anxue_license',
+    get: function () { try { return localStorage.getItem(this.KEY) || ""; } catch (e) { return ""; } },
+    isUnlocked: function () { return !!this.get(); },
+    sha256: function (s) {
+      var buf = new TextEncoder().encode(s);
+      return crypto.subtle.digest('SHA-256', buf).then(function (d) {
+        return Array.from(new Uint8Array(d)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+      });
+    },
+    verify: function (code) {
+      var c = String(code || "").toUpperCase().replace(/[^A-F0-9]/g, "");
+      if (c.length !== 16) return Promise.resolve(false);
+      var salt = c.slice(0, 12), sig = c.slice(12);
+      return this.sha256(this.SEED + salt).then(function (h) {
+        return h.slice(0, 4).toUpperCase() === sig;
+      });
+    },
+    unlock: function (code) {
+      return this.verify(code).then(function (ok) {
+        if (ok) { try { localStorage.setItem(LICENSE.KEY, String(code).toUpperCase()); } catch (e) {} }
+        return ok;
+      });
+    }
+  };
+  function openLicModal(msg) {
+    var m = document.getElementById("licMask");
+    if (!m) return;
+    m.style.display = "flex";
+    var box = document.getElementById("licInput");
+    var msgEl = document.getElementById("licMsg");
+    var btn = document.getElementById("licBtn");
+    box.value = ""; msgEl.textContent = msg || "";
+    box.focus();
+    function tryUnlock() {
+      var code = box.value.trim();
+      if (!code) { msgEl.textContent = "请输入激活码"; return; }
+      btn.disabled = true; btn.textContent = "验证中…";
+      LICENSE.unlock(code).then(function (ok) {
+        btn.disabled = false; btn.textContent = "解锁全部内容";
+        if (ok) {
+          msgEl.style.color = "#2ecc71";
+          msgEl.textContent = "✅ 激活成功！正在刷新…";
+          setTimeout(function () { location.reload(); }, 1200);
+        } else {
+          msgEl.style.color = "#e74c3c";
+          msgEl.textContent = "❌ 激活码无效，请检查后重试";
+        }
+      });
+    }
+    btn.onclick = tryUnlock;
+    box.onkeydown = function (e) { if (e.key === "Enter") tryUnlock(); };
+    document.getElementById("licClose").onclick = function () { m.style.display = "none"; };
   }
 
   // 学习完成 → 通知新宠物系统（写共享 localStorage，宠物小屋启动时结算）
