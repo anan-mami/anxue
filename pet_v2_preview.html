@@ -103,8 +103,7 @@
     background:rgba(255,255,255,0.96); border-radius:24px; padding:2px 12px; box-shadow:0 6px 18px rgba(0,0,0,0.2);
     animation:decorPopIn 0.5s cubic-bezier(0.34,1.56,0.64,1); pointer-events:none; white-space:nowrap;}
   @keyframes decorPopIn{from{transform:translateX(-50%) scale(0) rotate(-30deg);opacity:0;}to{transform:translateX(-50%) scale(1) rotate(0);opacity:1;}}
-  .decor span{display:inline-block; margin:0 2px;}
-    pointer-events:none; filter:drop-shadow(0 3px 4px rgba(0,0,0,.15));}
+  .decor span{display:inline-block; margin:0 2px; pointer-events:none; filter:drop-shadow(0 3px 4px rgba(0,0,0,.15));}
 
   /* 粒子特效（撒花/星星/爱心） */
   .particle{position:absolute; bottom:34%; font-size:22px; pointer-events:none; z-index:8;
@@ -229,6 +228,44 @@
     padding:10px 18px; border-radius:20px; font-size:14px; z-index:99; opacity:0; transition:opacity .3s; pointer-events:none;}
   .toast.on{opacity:1;}
   .empty-tip{text-align:center; color:#a08a78; font-size:13px; margin-top:10px;}
+
+  /* ===== 饱腹系统 ===== */
+  .full-wrap{margin:6px auto 10px; padding:10px 14px; background:#fff; border-radius:16px; box-shadow:var(--shadow); max-width:340px;}
+  .full-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:13px; color:#7a5a44; font-weight:700;}
+  .full-top .ic{font-size:18px;}
+  .full-bar{position:relative; height:12px; background:#f5e8d8; border-radius:8px; overflow:hidden;}
+  .full-bar .fill{height:100%; width:80%; background:linear-gradient(90deg,#ffb159,#ff8a3d); transition:width .4s ease, background .4s ease; border-radius:8px;}
+  .full-bar.low .fill{background:linear-gradient(90deg,#ffcf66,#ffae3a);}
+  .full-bar.very-low .fill{background:linear-gradient(90deg,#d4845b,#a05f3a);}
+  .full-bar.full .fill{background:linear-gradient(90deg,#7ad88a,#4ecb71);}
+  .full-hint{font-size:11px; color:#a08a78; margin-top:6px; text-align:center; min-height:14px;}
+  .stage.hungry{filter:contrast(.92) brightness(.97) saturate(.85);}
+  .pet-wrap.hungry{animation:hungryShake 3s ease-in-out infinite;}
+  @keyframes hungryShake{0%,90%,100%{transform:translateY(0)}95%{transform:translateY(-2px)}}
+
+  /* ===== 食物飞向宠物 ===== */
+  .food-fly{position:fixed; z-index:120; font-size:34px; pointer-events:none; transform:translate(0,0); transition:transform .8s cubic-bezier(.45,.05,.55,1), opacity .8s ease;}
+  .food-fly.gone{opacity:0; transform:translate(var(--fx,0px), var(--fy,-180px)) scale(.4);}
+
+  /* ===== 大满足特效 ===== */
+  .celebrate{position:fixed; inset:0; pointer-events:none; z-index:80;}
+  .celebrate .bg{position:absolute; inset:0; background:radial-gradient(circle at center, rgba(255,235,150,.65) 0%, transparent 70%); animation:celebrateBG 1.4s ease-out forwards;}
+  @keyframes celebrateBG{0%{opacity:0;transform:scale(.3);}30%{opacity:1;}100%{opacity:0;transform:scale(1.8);}}
+  .celebrate .text{position:absolute; left:50%; top:32%; transform:translateX(-50%); font-size:34px; font-weight:800; color:#ff6b3d; text-shadow:0 4px 14px rgba(255,200,100,.7),0 0 6px #fff; animation:celebrateTxt 1.4s ease-out forwards; white-space:nowrap;}
+  @keyframes celebrateTxt{0%{opacity:0;transform:translateX(-50%) translateY(20px) scale(.5);}20%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.2);}80%{opacity:1;transform:translateX(-50%) translateY(-10px) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(-30px) scale(.95);}}
+
+  /* ===== 解锁弹窗 ===== */
+  .unlock-modal{position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999; display:none; align-items:center; justify-content:center; padding:20px;}
+  .unlock-modal.on{display:flex; animation:fadeIn .3s ease-out;}
+  .unlock-card{background:linear-gradient(135deg, #fff5e6 0%, #ffe8d6 100%); border:3px solid #ffd54a; border-radius:24px; padding:24px 28px; max-width:340px; width:100%; text-align:center; box-shadow:0 12px 40px rgba(255,213,74,.45); animation:popIn .4s cubic-bezier(0.34, 1.56, 0.64, 1);}
+  .unlock-card .emoji{font-size:80px; margin-bottom:6px; animation:bounceIn .6s ease-out;}
+  .unlock-card h2{font-size:20px; color:#c0392b; margin:6px 0 4px; font-weight:800;}
+  .unlock-card .name{font-size:18px; color:#2c3e50; font-weight:700; margin:6px 0 14px;}
+  .unlock-card .actions{display:flex; gap:10px; justify-content:center;}
+  .unlock-card button{padding:10px 22px; border:none; border-radius:20px; font-size:15px; font-weight:700; cursor:pointer;}
+  .unlock-card .btn-yes{background:linear-gradient(135deg, #ff9f43, #ff7a33); color:#fff; box-shadow:0 4px 12px rgba(255,122,51,.4);}
+  .unlock-card .btn-yes:active{transform:scale(.96);}
+  .unlock-card .btn-no{background:transparent; color:#7d4b00; border:1.5px solid #ecdccb;}
 </style>
 </head>
 <body>
@@ -256,10 +293,11 @@
   </div>
 </div>
 
+
 <div class="wrap" id="mainWrap" style="display:none;">
   <div class="topbar">
     <h1>🐾 我的宠物小屋</h1>
-    <div class="coins">🍎 <span id="foodNum">0</span></div>
+    <div class="coins">🍎 <span id="foodNum">0</span> 🪙 <span id="coinNum">0</span></div>
     
   </div>
   <div class="pending-banner" id="pendingBanner" style="display:none;">
@@ -274,7 +312,18 @@
     <div class="pet-tip" id="petTip">👆 点头/肚子/脚试试</div>
     <div class="nameplate"><span id="petName">--</span></div>
     <div class="pet-stats" id="petStats" style="display:none;"></div>
-    <div class="mech-tip">✨ 做题答对 → 得🍎 → 喂宠物 → <b>答对 10/20/30 题解锁 🎩🧣⚽</b></div>
+    <div class="bars">
+      <div class="bar-row"><span class="lab">经验</span><div class="bar exp"><i id="expBar"></i></div></div>
+      <div class="bar-row"><span class="lab">活力</span><div class="bar energy"><i id="energyBar"></i></div></div>
+    </div>
+    <span class="mood-tag" id="moodTag">正常</span>
+    <div class="unlock-tip" id="unlockTip"></div>
+    <div class="full-wrap" id="fullWrap">
+      <div class="full-top"><span class="ic" id="fullIcon">🍽</span><span id="fullTitle">饱腹度</span><span id="fullNum">80</span><span>/100</span></div>
+      <div class="full-bar" id="fullBarBox"><div class="fill" id="fullBar"></div></div>
+      <div class="full-hint" id="fullHint">饱腹度越高宠物越开心，饿了它会催你做题～</div>
+    </div>
+    <div class="mech-tip">✨ 做题答对 → 掉饱腹扣3 / 喂食加饱腹 → 饱腹归零宠物挑食</div>
     <div class="food-stock" id="foodStock"></div>
   </div>
 
@@ -283,7 +332,6 @@
     <button class="btn play" id="btnPlay">🎾 陪玩</button>
     <button class="btn feed" id="btnFeed">🍎 喂食</button>
     <button class="btn sleep" id="btnSleep">😴 睡觉</button>
-    <button class="btn dress" id="btnDress">🎀 装扮</button>
     <button class="btn study wide" id="btnStudy">📚 去主学习台做题（拿经验+食物）</button>
     <button class="btn ghost" id="btnSwitch">🔄 换一只（50🪙）</button>
   </div>
@@ -308,18 +356,6 @@
 </div>
 
 <!-- 换宠面板 -->
-<!-- 装扮面板 -->
-<div class="sheet-mask" id="dressMask">
-  <div class="sheet">
-    <h3>🎀 给宠物挑装扮</h3>
-    <p class="sheet-sub">做题攒经验，经验够了就解锁新装扮！点一下穿上，再点一下脱下～</p>
-    <div class="dress-grid" id="dressGrid"></div>
-    <div style="text-align:center;margin-top:14px;">
-      <button class="btn ghost" id="dressClose" style="max-width:200px;">完成</button>
-    </div>
-  </div>
-</div>
-
 <div class="switch-mask" id="switchMask">
   <div class="switch-card">
     <h3>选择要陪伴你的小伙伴</h3>
@@ -356,25 +392,21 @@
     normal:["在发呆…","要不要一起学？","今天天气真好","摸摸我呀"],
     tired:["有点累…","想歇会儿","学了好多呢","喝口水先"],
     sad:["你怎么才来…","想你陪我…","我等好久了","委屈巴巴"],
-    sleep:["zzz…","梦里见","晚安…","呼噜呼噜"]
+    sleep:["zzz…","梦里见","晚安…","呼噜呼噜"],
+    blink:["看我眨眼✨","偷偷看你～","眨个眼😉","在发呆…"],
+    happy2:["奖励到账啦！","耶！超开心！","今天超棒！","你最懂我～"]
   };
-  var DECOR_UNLOCK = [
-    {key:"hat", e:"🎩", exp:50, name:"小礼帽"},
-    {key:"scarf", e:"🧣", exp:100, name:"围巾"},
-    {key:"ball", e:"⚽", exp:150, name:"玩具球"}
-  ];
-
   // 眨眼 / 连击状态
   var _blinkUntil = 0, _blinkTimer = null;
   var _petClicks = 0, _petClickTime = 0;
 
   function now(){return Date.now();}
   function $(id){return document.getElementById(id);}
-  function rnd(a){return a[Math.floor(Math.random()*a.length)];}
+  function rnd(a){ if(!a || !a.length) return ""; return a[Math.floor(Math.random()*a.length)]; }
 
   function defaultState(){
-    return {pets:{}, current:null, coins:0, doneCount:0, lastFeedDate:null,
-      food:{banana:0,bone:0,apple:0}, decor:{hat:false,scarf:false,ball:false}, equipped:[]};
+    return {pets:{}, current:null, coins:0, doneCount:0, exp:0, lastFeedDate:null, lastBreakfastDate:null,
+      food:{banana:0,bone:0,apple:0}};
   }
   var S = load();
   // 修剪历史爆量食物到上限 20（防止用户已有几千食物撑爆）
@@ -383,14 +415,37 @@
   Object.keys(S.food).forEach(function(k){ if(S.food[k] > FOOD_MAX_INIT){ S.food[k] = FOOD_MAX_INIT; _trimmed = true; } });
   if(_trimmed){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
   function load(){
-    try{var r=localStorage.getItem(KEY); if(r) return Object.assign(defaultState(), JSON.parse(r));}catch(e){}
+    try{
+      var r = localStorage.getItem(KEY);
+      if(r){
+        var raw = JSON.parse(r);
+        var s = Object.assign(defaultState(), raw);
+        // 迁移：把不在 TYPES 里的老 type 回退到 dog（用户刷新即生效）
+        var dirty = false;
+        for(var k in s.pets){
+          if(!TYPES[s.pets[k].type]){
+            s.pets[k].type = "dog";
+            dirty = true;
+          }
+        }
+        // 迁移：老状态没有 full 字段 → 默认 80
+        for(var k in s.pets){
+          if(typeof s.pets[k].full !== "number"){ s.pets[k].full = 80; dirty = true; }
+        }
+        if(dirty){
+          try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){}
+        }
+        return s;
+      }
+    }catch(e){}
     return defaultState();
   }
   function save(){ try{localStorage.setItem(KEY, JSON.stringify(S));}catch(e){} }
 
   function cur(){ return S.current ? S.pets[S.current] : null; }
   function newPet(type){
-    return {type:type, name:TYPES[type].defName, exp:0, energy:100, mood:55, lastSeen:now(), sleeping:false};
+    if(!TYPES[type]) type = "dog";
+    return {type:type, name:TYPES[type].defName, exp:0, energy:100, mood:55, full:80, lastSeen:now(), sleeping:false};
   }
 
   // 情绪计算
@@ -413,7 +468,9 @@
     return baseMood(p);
   }
   function imgFor(type, m){
-    var t=TYPES[type].img;
+    // 容错：未知 type（如老版本 localStorage 残留的 cat）回退到 dog，避免抛 TypeError 致破图
+    if(!TYPES[type]) type = "dog";
+    var t = TYPES[type].img;
     if(m==="blink") return t.blink;
     if(m==="sleep") return t.sleep;
     if(m==="happy") return t.happy;
@@ -445,48 +502,25 @@
     var type = p.type;
     // 舞台
     var img = $("petImg");
-    img.src = imgFor(type, m);
+    try{
+      img.src = imgFor(type, m);
+    }catch(e){
+      img.src = TYPES.dog.img.main;  // 兜底显示狗
+    }
     img.className = "pet-img st-"+m;
     $("petName").textContent = p.name;
-    // 只显示"还差 N 题解锁下一个装扮"（有未解锁才显示）
-    var done = S.doneCount || 0;
-    var nextItem = null;
-    ["hat","scarf","ball"].forEach(function(k){
-      if(!nextItem && !S.decor[k]){
-        var need = k==="hat" ? 10 : (k==="scarf" ? 20 : 30);
-        nextItem = { key:k, need:need };
-      }
-    });
-    var ps = $("petStats");
-    if(nextItem){
-      var dn = DECOR_UNLOCK.filter(function(d){return d.key===nextItem.key;})[0].name;
-      ps.textContent = "再答对 " + (nextItem.need - done) + " 题，解锁 " + DECOR_UNLOCK.filter(function(d){return d.key===nextItem.key;})[0].e + " " + dn + "！";
-      ps.style.display = "block";
-    } else {
-      ps.style.display = "none";
-    }
     // 升级奖励：每级解锁一个新动作/装饰
     var unlocks = {1:"摸头互动",2:"🛏 睡觉",3:"🎉 庆祝动作",4:"💃 跳舞",5:"✨ 闪光特效",6:"🎁 礼物盒",7:"🌈 彩虹光环",8:"🎵 唱歌",9:"💎 钻石装饰",10:"👑 皇冠+专属背景"};
     var unlockEl = $("unlockTip");
-    unlockEl.classList.remove("on");
-    unlockEl.textContent = "";
-    var expBar = $("expBar"); if(expBar) expBar.style.width = "0%";
+    if(unlockEl){ unlockEl.classList.remove("on"); unlockEl.textContent = ""; }
+    var expBar = $("expBar"); if(expBar) expBar.style.width = Math.max(0,Math.min(100,((p.exp||0)%50)/50*100))+"%";
     var energyBar = $("energyBar"); if(energyBar) energyBar.style.width = Math.max(0,Math.min(100,p.energy))+"%";
     var tag = $("moodTag");
-    var mtxt={happy:"开心",normal:"正常",tired:"疲倦",sad:"委屈",sleep:"睡觉"}[m];
-    tag.textContent = mtxt;
-    tag.className = "mood-tag m-"+m;
-    // 装饰（显眼显示在宠物头顶）
-    var dec=$("decor");
-    if(S.equipped && S.equipped.length){
-      dec.style.display="block";
-      dec.innerHTML = S.equipped.map(function(k){
-        var d = DECOR_UNLOCK.filter(function(x){return x.key===k;})[0];
-        return d ? '<span>'+d.e+'</span>' : '';
-      }).join("");
-    } else dec.style.display="none";
+    if(tag){ var mtxt={happy:"开心",normal:"正常",tired:"疲倦",sad:"委屈",sleep:"睡觉"}[m]; tag.textContent = mtxt; tag.className = "mood-tag m-"+m; }
     // 食物库存
     renderFood();
+    // 饱腹条
+    renderFull();
     // 宠物饿提示：今天没喂过 + 食物不足 → 催促做题
     var todayStr = new Date().toDateString();
     var fedToday = S.lastFeedDate === todayStr;
@@ -502,7 +536,7 @@
     // 浮动
     $("fabImg").src = imgFor(type, m);
     $("fabName").textContent = p.name;
-    $("fabBubble").textContent = rnd(BUBBLES[bm]);
+    $("fabBubble").textContent = rnd(BUBBLES[bm2]);
     $("fab").classList.toggle("sad", m==="sad");
     // 顶部食物总数
     var foodTotal = 0;
@@ -556,6 +590,59 @@
       el.innerHTML=FOODS[k].e+" <b>"+n+"</b>";
       box.appendChild(el);
     });
+  }
+
+  // ====== 饱腹系统渲染 ======
+  function renderFull(){
+    var p=cur(); if(!p) return;
+    var v = (typeof p.full === "number") ? p.full : 80;
+    var bar = $("fullBar"); var box = $("fullBarBox"); var hint = $("fullHint");
+    if(bar){ bar.style.width = Math.max(0, Math.min(100, v)) + "%"; }
+    if(box){
+      box.classList.toggle("very-low", v <= 20);
+      box.classList.toggle("low", v > 20 && v <= 40);
+      box.classList.toggle("full", v >= 85);
+    }
+    var num = $("fullNum"); if(num) num.textContent = Math.round(v);
+    var ic = $("fullIcon"), title = $("fullTitle");
+    if(v <= 20){ if(ic) ic.textContent="😣"; if(title) title.textContent="肚子空啦"; }
+    else if(v <= 40){ if(ic) ic.textContent="😋"; if(title) title.textContent="有点饿"; }
+    else if(v >= 95){ if(ic) ic.textContent="🈵"; if(title) title.textContent="太撑啦"; }
+    else if(v >= 75){ if(ic) ic.textContent="😺"; if(title) title.textContent="饱饱的"; }
+    else { if(ic) ic.textContent="🍽"; if(title) title.textContent="饱腹度"; }
+    if(hint){
+      if(v <= 15) hint.textContent = "🐾 太饿啦…去做题赚食物，再喂我呀～";
+      else if(v <= 30) hint.textContent = "🐾 小家伙有点饿了～喂点食物开心下吧";
+      else if(v >= 95) hint.textContent = "🐾 撑撑的，先别喂啦～去做点题消耗下吧";
+      else hint.textContent = "🐾 饱着呢，今天状态不错～继续做题攒装扮吧";
+    }
+    var stage = document.querySelector(".stage");
+    if(stage) stage.classList.toggle("hungry", v <= 20);
+  }
+
+  // 把"主台答对题导致饱腹下降"的待处理量，应用到当前宠物，然后清零
+  function applyPendingFullDelta(){
+    try{
+      var raw = localStorage.getItem("pet_full_pending");
+      if(!raw) return;
+      var delta = parseFloat(raw);
+      var p = cur(); if(!p){ localStorage.removeItem("pet_full_pending"); return; }
+      p.full = Math.max(0, Math.min(100, (p.full||80) - delta));
+      save();
+      localStorage.removeItem("pet_full_pending");
+    }catch(e){}
+  }
+
+  // 每天首次进宠物小屋，给宠物 +20 饱腹（"免费早餐"，避免昨天喂过今天开局就饿）
+  function doDailyBreakfast(){
+    try{
+      var today = new Date().toDateString();
+      if(S.lastBreakfastDate === today) return;
+      var p = cur(); if(!p) return;
+      p.full = Math.min(100, (p.full||80) + 20);
+      S.lastBreakfastDate = today;
+      save();
+    }catch(e){}
   }
   function setBubble(txt){ var b=$("bubble"); b.textContent=txt; b.style.animation="none"; void b.offsetWidth; b.style.animation=""; }
 
@@ -647,21 +734,71 @@
     toast("💤 "+p.name+"睡着了，30秒后精神满满");
     setTimeout(function(){ p.sleeping=false; p.react=null; p.energy=100; p.mood=Math.max(p.mood,60); p.lastSeen=now(); render(); save(); toast("☀️ 睡醒啦！活力恢复"); }, 30000);
   }
-  function feed(type){
+  // 大满足连击：30 秒内连续喂 ≥3 个 → 触发全屏特效 + 重置计数
+  var _combo = {ts:0, n:0};
+  function celebrate(){
+    var c = document.createElement("div");
+    c.className = "celebrate";
+    c.innerHTML = '<div class="bg"></div><div class="text">✨ 大满足！</div>';
+    document.body.appendChild(c);
+    setTimeout(function(){ if(c.parentNode) c.remove(); }, 1500);
+    try{ burst("🎊", 16); }catch(e){}
+  }
+  function flyFoodToPet(emoji, srcEl){
+    try{
+      if(!srcEl || !srcEl.getBoundingClientRect) return;
+      var rect = srcEl.getBoundingClientRect();
+      var ptEl = $("petImg");
+      if(!ptEl) return;
+      var ptRect = ptEl.getBoundingClientRect();
+      var fly = document.createElement("div");
+      fly.className = "food-fly";
+      fly.textContent = emoji;
+      fly.style.left = (rect.left + rect.width/2 - 17) + "px";
+      fly.style.top  = (rect.top + rect.height/2 - 17) + "px";
+      document.body.appendChild(fly);
+      var dx = (ptRect.left + ptRect.width/2) - (rect.left + rect.width/2);
+      var dy = (ptRect.top + ptRect.height/2) - (rect.top + rect.height/2);
+      requestAnimationFrame(function(){
+        fly.style.setProperty('--fx', dx+'px');
+        fly.style.setProperty('--fy', dy+'px');
+        fly.classList.add('gone');
+      });
+      setTimeout(function(){ if(fly.parentNode) fly.remove(); }, 900);
+    }catch(e){}
+  }
+  function feed(type, srcEl){
     var p=cur(); if(!p) return;
+    if((p.full||80) >= 95){ toast("🈵 饱啦～等会儿再喂"); return; }
     if((S.food[type]||0)<=0){ toast("没有"+FOODS[type].name+"了，去学习赚奖励吧～"); return; }
     S.food[type]--;
     S.lastFeedDate = new Date().toDateString();  // 今天喂过了
     var fav = FOODS[type].fav.indexOf(p.type)>=0;
     p.mood=Math.min(100, p.mood + (fav?20:8));
     p.energy=Math.min(100, p.energy+ (fav?6:3));
+    p.full = Math.min(100, (p.full||80) + (fav?30:25));
     p.lastSeen=now();
+
+    // 大满足连击检测
+    var nowTs = Date.now();
+    if(_combo.n > 0 && (nowTs - _combo.ts) < 30000){ _combo.n++; }
+    else { _combo.n = 1; }
+    _combo.ts = nowTs;
+    if(_combo.n >= 3){
+      celebrate();
+      _combo.n = 0;
+    } else if(_combo.n >= 2){
+      setBubble("✨ 真好吃！再来一个～");
+    }
+
     if(fav){ p.react="happy2"; p.reactUntil=now()+2800; }
-    else { p.react="happy"; p.reactUntil=now()+2500; }
+    else   { p.react="happy"; p.reactUntil=now()+2500; }
     save(); render();
     // 喂食面板开着 → 立即刷新数量（即时反馈）
     if($("feedMask").classList.contains("on")){ openFeed(); }
     if(fav){ burst(FOODS[type].e,6); setBubble("最爱吃"+FOODS[type].name+"啦！"); }
+    // 食物飞向宠物
+    flyFoodToPet(FOODS[type].e, srcEl);
   }
   function studyDone(){
     var p=cur(); if(!p) return;
@@ -670,7 +807,6 @@
     var rewards=Object.keys(FOODS).filter(function(k){ return FOODS[k].fav.indexOf(p.type)>=0; });
     var rk=rewards[Math.floor(Math.random()*rewards.length)];
     S.food[rk]=(S.food[rk]||0)+1;
-    checkUnlock(p);
     p.react="happy2"; p.reactUntil=now()+3000;
     render(); save();
     burst("🌟",9);
@@ -685,60 +821,8 @@
     burst("💪",6);
     toast("🏃 +5经验 +3🪙 活力+25");
   }
-  // 装扮按答对题数解锁：帽子 10 题、围巾 20 题、球 30 题
-  function checkUnlock(p){
-    var done = S.doneCount || 0;
-    var newUnlocked = [];
-    DECOR_UNLOCK.forEach(function(d){
-      var need = d.key==="hat" ? 10 : (d.key==="scarf" ? 20 : (d.key==="ball" ? 30 : 999));
-      if(!S.decor[d.key] && done >= need){ S.decor[d.key]=true; newUnlocked.push(d.name); }
-    });
-    if(newUnlocked.length) toast("🎉 解锁新装扮："+newUnlocked.join("、")+"！点「🎀 装扮」穿上吧");
-  }
-
-  // ====== 装扮面板 ======
-  function openDress(){
-    var p=cur(); if(!p) return;
-    var grid=$("dressGrid"); grid.innerHTML="";
-    var done = S.doneCount || 0;
-    DECOR_UNLOCK.forEach(function(d){
-      var need = d.key==="hat" ? 10 : (d.key==="scarf" ? 20 : (d.key==="ball" ? 30 : 999));
-      var owned = !!S.decor[d.key];
-      var equipping = S.equipped.indexOf(d.key) >= 0;
-      var el=document.createElement("div");
-      el.className = "dress-item" + (owned ? " owned" : " locked") + (equipping ? " on" : "");
-      var status = owned ? (equipping ? "✅ 已穿上" : "👆 点我穿上") : ("答对 " + done + "/" + need + " 题解锁");
-      var lockTxt = owned ? "" : ('<span class="dl">还差 ' + (need - done) + ' 题</span>');
-      el.innerHTML='<span class="di">'+d.e+'</span><span class="dn">'+d.name+'</span><span class="ds">'+status+'</span>'+lockTxt;
-      if(owned){
-        el.onclick=function(){ toggleEquip(d.key); };
-      }
-      grid.appendChild(el);
-    });
-    $("dressMask").classList.add("on");
-  }
-  function toggleEquip(key){
-    var p=cur(); if(!p) { toast("请先领养宠物"); return; }
-    var d = DECOR_UNLOCK.filter(function(x){ return x.key===key; })[0];
-    var name = d ? d.name : key;
-    var idx=S.equipped.indexOf(key);
-    if(idx>=0){
-      S.equipped.splice(idx,1);
-      toast("已脱下 " + (d?d.e:key) + " " + name);
-    } else {
-      S.equipped.push(key);
-      toast("✨ 穿上 " + (d?d.e:key) + " " + name + " 啦！");
-      // 闪光提示
-      var dec = $("decor");
-      if(dec){
-        dec.style.transform = "translateX(-50%) scale(1.3)";
-        setTimeout(function(){ dec.style.transform = "translateX(-50%) scale(1)"; }, 300);
-      }
-    }
-    try{ save(); }catch(e){ toast("保存失败：" + e.message); return; }
-    render();
-    try{ openDress(); }catch(e){}
-  }
+  // 装扮按双阈值解锁：经验 d.exp 或 答对题数 d.questions 任一达到即解锁
+  var _pendingUnlockItems = [];
   function popImg(){ var i=$("petImg"); i.classList.remove("pop"); void i.offsetWidth; i.classList.add("pop"); }
 
   // ====== 领养 ======
@@ -807,7 +891,9 @@
     $("fab").style.display="flex";
     wakeCheck();
     preloadFaces();
-    settlePendingStudy();
+    settlePendingStudy();      // 结算做题奖励
+    applyPendingFullDelta();   // 应用主台答题扣减的饱腹
+    doDailyBreakfast();        // 每天首次 +20 免费早餐
     render();
     scheduleBlink();
   }
@@ -841,7 +927,8 @@
         foodGot[rk] = (foodGot[rk]||0)+1;
       }
       S.doneCount = (S.doneCount||0) + totalRound;
-      checkUnlock(p);
+      // 答题消耗饱腹：每题 -3（来自主页 afterAnswer 通过 pet_full_pending 累计；这里只清 pending 不再 -totalRound*3 避免重扣）
+      p.full = p.full || 80;
       save();
       // 宠物开心 + 撒花 + 飘字
       p.react = "happy2"; p.reactUntil = now() + 3000;
@@ -892,24 +979,36 @@
   }
   function preloadFaces(){
     var p=cur(); if(!p) return;
+    if(!TYPES[p.type]) p.type = "dog";
     var t=TYPES[p.type].img;
     for(var k in t){ var im=new Image(); im.src=t[k]; }
   }
 
-  // ====== 喂食浮层（只显示当前宠物能吃的食物） ======
+  // ====== 喂食浮层（只显示当前宠物能吃的食物；满饱提示禁喂） ======
   function openFeed(){
     var g=$("foodGrid"); g.innerHTML="";
     var p=cur();
     var pt = p ? p.type : null;
+    var fullMaxed = !!(p && (p.full||0) >= 95);
     Object.keys(FOODS).forEach(function(k){
       if(pt && FOODS[k].fav.indexOf(pt)<0) return;  // 不爱吃的不显示
       var n=S.food[k]||0;
       var el=document.createElement("div");
-      el.className="food-opt"+(n<=0?" dis":"");
+      var dim = (n<=0) || fullMaxed;
+      el.className="food-opt"+(dim?" dis":"")+(fullMaxed && n>0 ? " too-full":"");
       el.innerHTML='<div class="e">'+FOODS[k].e+'</div><div>'+FOODS[k].name+'</div><div>x'+n+'</div>';
-      el.onclick=function(){ if((S.food[k]||0)>0){ feed(k); } else { toast("没有"+FOODS[k].name+"了，去做题吧～"); } };
+      el.onclick=function(){
+        if(fullMaxed){ toast("🈵 肚子饱啦！等会儿再喂"); return; }
+        if((S.food[k]||0)>0){ feed(k, el); } else { toast("没有"+FOODS[k].name+"了，去做题吧～"); }
+      };
       g.appendChild(el);
     });
+    if(fullMaxed){
+      var tip=document.createElement("div");
+      tip.className="empty-tip";
+      tip.textContent="🐾 "+p.name+" 太撑了，先别喂～去做题消耗下再来吧";
+      g.appendChild(tip);
+    }
     $("feedMask").onclick=function(e){ if(e.target===this) $("feedMask").classList.remove("on"); };
     $("feedMask").classList.add("on");
   }
@@ -921,8 +1020,6 @@
   $("btnFeed").onclick=openFeed;
   $("btnStudy").onclick=function(){ try{ parent.navigate({page:/subject/}); }catch(e){ top.location.href="index.html"; } };
   $("btnSwitch").onclick=openSwitch;
-  $("btnDress").onclick=openDress;
-  $("dressClose").onclick=function(){ $("dressMask").classList.remove("on"); };
   $("feedCancel").onclick=function(){$("feedMask").classList.remove("on");};
   $("switchCancel").onclick=function(){$("switchMask").classList.remove("on");};
   $("nbConfirm").onclick=confirmAdopt;
